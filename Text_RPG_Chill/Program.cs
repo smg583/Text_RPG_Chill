@@ -16,20 +16,10 @@
         //임시 플레이어 클래스
         class Player : Unit
         {
-            public string Class { get; set; }
+            public Job Job { get; set; }
+            public int Gold { get; set; }
             public float PlayerEXP { get; set; }
         }
-        //임시 플레이어 데이터
-        static Player player = new Player
-        {
-            Name = "Chill",
-            Class = "전사",
-            Level = 1,
-            Att = 10,
-            Dfn = 5,
-            MaxHP = 100,
-            HP = 100
-        };
 
         //몬스터 클래스
         class Monster : Unit
@@ -43,6 +33,33 @@
                 HP = monsterHP;
             }
         }
+
+        //직업 클래스
+        class Job
+        {
+            public string Name { get; set; }
+            public int Level { get; set; }
+            public int Att { get; set; }
+            public int Dfn { get; set; }
+            public int MaxHP { get; set; }
+            public int StartGold { get; set; }
+
+            public Job(string name, int level, int att, int dfn, int hp, int startGold)
+            {
+                Name = name;
+                Level = level;
+                Att = att;
+                Dfn = dfn;
+                MaxHP = hp;
+                StartGold = startGold;
+            }
+        }
+
+        //직업 리스트
+        static List<Job> JobList = new List<Job>
+        {
+            new Job("전사", 1, 10, 5, 100, 1500)
+        };
 
         //스테이지 별 몬스터 리스트
         static List<Monster> monsters1 = new List<Monster>
@@ -60,13 +77,92 @@
             new Monster("공성미니언", 7, 10, 25)
         };
 
-
         //스테이지 리스트
         static List<List<Monster>> stage = new List<List<Monster>>
         {
             monsters1,
             monsters2
         };
+
+        static Player player;
+
+
+        static void Main(string[] args)
+        {
+            player = new Player();
+            CreatPlayer();
+            MainMenu();
+            int stageNum = 1;
+            Dungeon(stageNum);
+        }
+
+        //캐릭터 생성 메서드
+        static void CreatPlayer()
+        {
+            //직업 리스트 만큼 선택지 제공
+            int[] choices = Enumerable.Range(1, JobList.Count).ToArray();
+
+            //이름 입력 및 초기 화면
+            Console.WriteLine("스파르타 던전에 오신 여러분 환영합니다.");
+            Console.WriteLine();
+            Console.WriteLine("원하시는 이름을 설정해 주세요: ");
+            Console.Write(">>");
+            player.Name = Console.ReadLine();
+            Console.WriteLine();
+
+            //직업 선택 부분
+            Console.WriteLine("해당 캐릭터의 직업을 설정해 주세요.(숫자만 입력)");
+            Console.WriteLine("1. 전사");
+            Console.WriteLine("2. 도적");
+            Console.WriteLine("3. 팔라딘");
+
+            //위의 배열을 통해 선택지 선택
+            int choice = Input(choices);
+            Job choiceJob = JobList[choice - 1];
+
+            //직업의 스탯에 맞게 플레이어 스탯 초기화
+            player.Level = choiceJob.Level;
+            player.Att = choiceJob.Att;
+            player.Dfn = choiceJob.Dfn;
+            player.MaxHP = choiceJob.MaxHP;
+            player.HP = choiceJob.MaxHP;
+            player.Gold = choiceJob.StartGold;
+            player.Job = choiceJob;
+            player.PlayerEXP = 0;
+        }
+
+        //메인메뉴 메서드
+        static void MainMenu()
+        {
+            int[] choices = { 0, 1, 2 };
+
+            Console.WriteLine("메인메뉴");
+            Console.WriteLine("이제 전투를 시작할 수 있습니다.");
+            Console.WriteLine();
+            Console.WriteLine("1. 상태보기");
+            Console.WriteLine("2. 던전입장");
+
+            //색상 변경
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("0. 종료하기");
+            Console.ResetColor();
+            int choice = Input(choices);
+
+            switch (choice)
+            {
+                case 0:
+                    Console.WriteLine("게임을 종료합니다");
+                    return;
+
+                case 1:
+                    StatusScreen();
+                    break;
+
+                case 2:
+                    DungeonSelect();
+                    break;
+            }
+        }
 
         //던전 메서드
         //기본 정보(몬스터 정보 및 캐릭터 정보) 출력 후 선택지 제공
@@ -137,7 +233,7 @@
                 }
                 Console.WriteLine();
                 Console.WriteLine("[내정보]");
-                Console.WriteLine($"LV.{player.Level} {player.Name} ({player.Class})");
+                Console.WriteLine($"LV.{player.Level} {player.Name} ({player.Job})");
                 Console.WriteLine($"HP {player.HP}/{player.MaxHP}");
                 Console.WriteLine();
 
@@ -187,12 +283,6 @@
             Console.WriteLine();
             Console.WriteLine("0. 다음");
             int choice = Input(choices);
-        }
-
-        static void Main(string[] args)
-        {
-            int stageNum = 1;
-            Dungeon(stageNum);
         }
 
         //인풋 확인 시스템
