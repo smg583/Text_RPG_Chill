@@ -2,6 +2,7 @@
 {
     internal class Program
     {
+<<<<<<< HEAD
         //플레이어, 몬스터를 통합하는 유닛 클래스
         class Unit
         {
@@ -308,6 +309,11 @@
                     Console.WriteLine("다시 입력해주세요.");
                 }
             }
+=======
+        static void Main(string[] args)
+        {
+            Console.WriteLine("Hello, World!");
+>>>>>>> parent of 6f3f6fd (update : 전투 시스템)
         }
     }
 }
