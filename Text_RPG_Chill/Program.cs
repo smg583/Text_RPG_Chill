@@ -1,196 +1,313 @@
-﻿using System.Reflection.Metadata.Ecma335;
-using static TexTRPG_Team_ver.Program;
-
-namespace TexTRPG_Team_ver
+﻿namespace Text_RPG_Chill
 {
     internal class Program
     {
-        public class Character
+        //플레이어, 몬스터를 통합하는 유닛 클래스
+        class Unit
         {
-            public string name;
-            public string job;
-            public int level = 1;
-            public int atk = 10;
-            public int def = 5;
-            public int hp = 100;
-            public int gold = 1500;
+            public string Name { get; set; }
+            public int Level { get; set; }
+            public int Att { get; set; }
+            public int Dfn { get; set; }
+            public int HP { get; set; }
+            public int MaxHP { get; set; }
+            public bool IsDead => HP <= 0;
+        }
+        //임시 플레이어 클래스
+        class Player : Unit
+        {
+            public Job Job { get; set; }
+            public int Gold { get; set; }
+            public float PlayerEXP { get; set; }
         }
 
-        public class Monster
+        //몬스터 클래스
+        class Monster : Unit
         {
-            public string name;
-            public int level;
-            public int hp;
-            public int atk;
-            public bool isDead = false;
-
+            //몬스터 생성
+            public Monster(string mosterName, int monsterLV, int monsterAtt, int monsterHP)
+            {
+                Name = mosterName;
+                Level = monsterLV;
+                Att = monsterAtt;
+                HP = monsterHP;
+            }
         }
+
+        //직업 클래스
+        class Job
+        {
+            public string Name { get; set; }
+            public int Level { get; set; }
+            public int Att { get; set; }
+            public int Dfn { get; set; }
+            public int MaxHP { get; set; }
+            public int StartGold { get; set; }
+
+            public Job(string name, int level, int att, int dfn, int hp, int startGold)
+            {
+                Name = name;
+                Level = level;
+                Att = att;
+                Dfn = dfn;
+                MaxHP = hp;
+                StartGold = startGold;
+            }
+        }
+
+        //직업 리스트
+        static List<Job> JobList = new List<Job>
+        {
+            new Job("전사", 1, 10, 5, 100, 1500)
+        };
+
+        //스테이지 별 몬스터 리스트
+        static List<Monster> monsters1 = new List<Monster>
+        {
+            new Monster("미니언", 2, 5, 15),
+            new Monster("대포미니언", 5, 8, 25),
+            new Monster("공허충", 3, 9, 10)
+        };
+
+        static List<Monster> monsters2 = new List<Monster>
+        {
+            new Monster("미니언1", 2, 5, 15),
+            new Monster("대포미니언1", 5, 8, 25),
+            new Monster("공허충1", 3, 9, 10),
+            new Monster("공성미니언", 7, 10, 25)
+        };
+
+        //스테이지 리스트
+        static List<List<Monster>> stage = new List<List<Monster>>
+        {
+            monsters1,
+            monsters2
+        };
+
+        static Player player;
+
 
         static void Main(string[] args)
         {
-            Character character = new Character();
-
-            List<Monster> monsters = new List<Monster>();
-            monsters.Add(new Monster { name = "미니언", level = 2, hp = 15, atk = 5 });
-            monsters.Add(new Monster { name = "공허충", level = 3, hp = 10, atk = 9 });
-            monsters.Add(new Monster { name = "대포미니언", level = 5, hp = 25, atk = 8 });
-
-            CreatCharacter(character);
-            MainMenu(character, monsters);
+            player = new Player();
+            CreatPlayer();
+            MainMenu();
+            int stageNum = 1;
+            Dungeon(stageNum);
         }
 
-        public static void CreatCharacter(Character character)
+        //캐릭터 생성 메서드
+        static void CreatPlayer()
         {
-            Console.WriteLine("스파르타 던전에 오신 여러분 환영합니다.\n");
-            
+            //직업 리스트 만큼 선택지 제공
+            int[] choices = Enumerable.Range(1, JobList.Count).ToArray();
+
+            //이름 입력 및 초기 화면
+            Console.WriteLine("스파르타 던전에 오신 여러분 환영합니다.");
+            Console.WriteLine();
             Console.WriteLine("원하시는 이름을 설정해 주세요: ");
-            Console.Write(">>> ");
-            character.name = Console.ReadLine();
-            Console.WriteLine(" ");
-            
+            Console.Write(">>");
+            player.Name = Console.ReadLine();
+            Console.WriteLine();
+
+            //직업 선택 부분
             Console.WriteLine("해당 캐릭터의 직업을 설정해 주세요.(숫자만 입력)");
-            Console.WriteLine("1. 전사\n2. 도적\n3. 팔라딘");
-            Console.Write(">>> ");
-            string action = Console.ReadLine();
+            Console.WriteLine("1. 전사");
+            Console.WriteLine("2. 도적");
+            Console.WriteLine("3. 팔라딘");
 
-            switch (action)
-            {
-                case "1":
-                    character.job = "전사";
-                    break;
-                case "2":
-                    character.job = "도적";
-                    break;
-                case "3":
-                    character.job = "팔라딘";
-                    break;
-            }
-            
+            //위의 배열을 통해 선택지 선택
+            int choice = Input(choices);
+            Job choiceJob = JobList[choice - 1];
+
+            //직업의 스탯에 맞게 플레이어 스탯 초기화
+            player.Level = choiceJob.Level;
+            player.Att = choiceJob.Att;
+            player.Dfn = choiceJob.Dfn;
+            player.MaxHP = choiceJob.MaxHP;
+            player.HP = choiceJob.MaxHP;
+            player.Gold = choiceJob.StartGold;
+            player.Job = choiceJob;
+            player.PlayerEXP = 0;
         }
 
-
-        public static void MainMenu(Character character, List<Monster> monsters)
+        //메인메뉴 메서드
+        static void MainMenu()
         {
-            do
+            int[] choices = { 0, 1, 2 };
+
+            Console.WriteLine("메인메뉴");
+            Console.WriteLine("이제 전투를 시작할 수 있습니다.");
+            Console.WriteLine();
+            Console.WriteLine("1. 상태보기");
+            Console.WriteLine("2. 던전입장");
+
+            //색상 변경
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("0. 종료하기");
+            Console.ResetColor();
+            int choice = Input(choices);
+
+            switch (choice)
             {
-                Console.Clear();
-                Console.WriteLine("메인메뉴");
-                Console.WriteLine("이제 전투를 시작할 수 있습니다.");
-                Console.WriteLine("\n1. 상태보기\n2. 전투시작");
+                case 0:
+                    Console.WriteLine("게임을 종료합니다");
+                    return;
 
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("\n0. 종료하기\n");
-                Console.ResetColor();
+                case 1:
+                    StatusScreen();
+                    break;
 
-                Console.WriteLine("원하시는 행동을 입력하세요.");
-                Console.Write(">>> ");
+                case 2:
+                    DungeonSelect();
+                    break;
+            }
+        }
 
+        //던전 메서드
+        //기본 정보(몬스터 정보 및 캐릭터 정보) 출력 후 선택지 제공
+        //공격하면 전투 메서드 실행
+        static void Dungeon(int stageNum)
+        {
+            int[] choices = { 0, 1 };
 
-                string action = Console.ReadLine();
+            Console.WriteLine($"Battle!!");
+            Console.WriteLine();
 
-                switch (action)
+            //스테이지[넘버]의 수만큼 반복
+            for (int i = 0; i < stage[stageNum].Count; i++)
+            {
+                //스테이지[넘버]의 요소를 monster로 저장 및 출력
+                var monster = stage[stageNum][i];
+                Console.WriteLine($"LV. {monster.Level} {monster.Name} HP {(monster.IsDead ? "Dead" : monster.HP)}");
+            }
+            Console.WriteLine();
+            Console.WriteLine("[내정보]");
+            Console.WriteLine($"LV.{player.Level} {player.Name} ({player.Name})");
+            Console.WriteLine($"HP {player.HP}/{player.MaxHP}");
+            Console.WriteLine();
+            Console.WriteLine("1. 공격");
+            Console.WriteLine("0. 도망가기");
+            Console.WriteLine();
+            int choice = Input(choices);
+
+            switch (choice)
+            {
+                case 0:
+                    Console.WriteLine("도망쳤습니다.");
+                    break;
+                case 1:
+                    Fight(stageNum);
+                    break;
+            }
+        }
+
+        //전투 메서드
+        static void Fight(int stageNum)
+        {
+            int monsterCount = stage[stageNum].Count;
+            while (player.HP > 0 || monsterCount > 0)
+            {
+                //살아있는 몬스터만 선택지로 나타내기 위한 리스트 셋업
+                List<int> choicesList = new List<int>();
+                int index = 1;
+
+                foreach (Unit monster in stage[stageNum])
                 {
-                    case "0":
-                        Console.WriteLine("게임을 종료합니다");
-                        return;
-
-                    case "1":
-                        StatusScreen();
-                        break;
-
-                    case "2":
-                        BattleScreen(character, monsters);
-                        break;
-
-                    default:
-                        Console.WriteLine("잘못된 입력입니다.");
-                        Thread.Sleep(1000); // 메세지 출력 후 1초 뒤에 넘어감
-                        continue;
+                    if (!monster.IsDead)
+                    {
+                        choicesList.Add(index);
+                    }
+                    index++;
                 }
-            } while (true);
-        }
 
-        public static void StatusScreen()
-        {
-            Console.Clear();
-            Console.WriteLine("상태창으로 이동합니다.");
+                //위의 셋업으로 선택지 생성
+                int[] choices = choicesList.ToArray();
 
-            Console.WriteLine("0을 메뉴로 입력하면 돌아갑니다");
-            string action = Console.ReadLine();
-            
-            if(action == "0")
-            {
-                return;
+                Console.WriteLine($"Battle!!");
+                Console.WriteLine();
+                for (int i = 0; i < stage[stageNum].Count; i++)
+                {
+                    Unit monster = stage[stageNum][i];
+                    Console.WriteLine($"[{i + 1}] LV. {monster.Level} {monster.Name} HP {(monster.IsDead ? "Dead" : monster.HP)}");
+                }
+                Console.WriteLine();
+                Console.WriteLine("[내정보]");
+                Console.WriteLine($"LV.{player.Level} {player.Name} ({player.Job})");
+                Console.WriteLine($"HP {player.HP}/{player.MaxHP}");
+                Console.WriteLine();
 
+                int choice = Input(choices);
+                Fighting(stageNum, choice - 1, ref monsterCount);
             }
         }
 
-        public static void BattleScreen(Character character, List<Monster> monsters)
+        static void Fighting(int stageNum, int choiceMonster, ref int monsterCount)
         {
-            Console.Clear();
+            Damage(player, stage[stageNum][choiceMonster]);
+
+            if (stage[stageNum][choiceMonster].HP <= 0)
+            {
+                monsterCount--;
+            }
+
+            foreach (Unit monster in stage[stageNum])
+            {
+                if (!monster.IsDead)
+                {
+                    Damage(monster, player);
+                }
+            }
+        }
+
+        //데미지 메서드
+        //공격자와 피격자를 매개변수로 받아
+        //플레이어 몬스터 상관없이 적용
+        static void Damage(Unit attacker, Unit target)
+        {
+            int[] choices = { 0 };
             Random random = new Random();
+            //데미지 오차 10%
+            int damageRate = (int)Math.Round(attacker.Att * 0.1);
+            int damage = random.Next(attacker.Att - damageRate, attacker.Att + damageRate);
+            int prevHP = target.HP;
+            target.HP -= damage;
 
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("Battle!\n");
-            Console.ResetColor();
-            
-            
-            int monsterNum = random.Next(1, 5);
-            for(int i = 0; i< monsterNum; i++)
-            {
-                int j = random.Next(0, 3);
-                Console.WriteLine($"Lv.{monsters[j].level} {monsters[j].name} HP {monsters[j].hp}");
-            }
-
-            Console.WriteLine("\n\n");
-
-            Console.WriteLine("[내정보]");
-            Console.WriteLine($"LV. {character.level}  {character.name} ({character.job})\nHP {character.hp}/100");
-
-            Console.WriteLine("\n1. 공격\n0. 돌아가기\n");
-            
-            
-            Console.WriteLine("원하시는 행동을 입력하세요.");
-            Console.Write(">>> ");
-            string action = Console.ReadLine();
-            
-            if (action == "0")
-            {
-                return;
-            }
-            else if (action == "1")
-            {
-                BattlePhase(character, monsters);
-            }
-
+            Console.WriteLine("Battle!!");
+            Console.WriteLine();
+            Console.WriteLine($"{attacker.Name} 의 공격!");
+            Console.WriteLine($"{target.Name} 을(를) 맞췄습니다. [데미지 : {damage}]");
+            Console.WriteLine();
+            Console.WriteLine($"Lv.{target.Level} {target.Name}");
+            Console.WriteLine($"HP {prevHP} -> {target.HP}");
+            Console.WriteLine();
+            Console.WriteLine("0. 다음");
+            int choice = Input(choices);
         }
 
-        public static void BattlePhase(Character character, List<Monster> monsters)
+        //인풋 확인 시스템
+        static int Input(int[] choices)
         {
-            Console.Clear();
-            int num = 1;
-
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("Battle!\n");
-            Console.ResetColor();
-
-            foreach (Monster monster in monsters)
+            while (true)
             {
-                Console.WriteLine($"{num} Lv.{monster.level} {monster.name} HP {monster.hp}");
-                num++;
+                Console.WriteLine();
+                Console.WriteLine("원하시는 행동을 입력해주세요.");
+                Console.Write(">>");
+                string? choice = Console.ReadLine();
+
+                //선택지마다 있는 배열을 참조
+                //배열외의 입력이면 재입력 요청
+                if (int.TryParse(choice, out int number) && choices.Contains(number))
+                {
+                    Console.Clear();
+                    return number;
+                }
+                else
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("다시 입력해주세요.");
+                }
             }
-            Console.WriteLine("\n\n");
-
-            Console.WriteLine("[내정보]");
-            Console.WriteLine($"LV. {character.level}  {character.name} ({character.job})\nHP {character.hp}/100");
-
-            Console.WriteLine("\n0. 취소\n");
-
-            Console.WriteLine("대상을 선택해주세요.");
-            Console.WriteLine(">>> ");
-            string enemy = Console.ReadLine();
-
-
         }
     }
 }
