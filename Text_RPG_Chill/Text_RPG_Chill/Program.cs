@@ -492,7 +492,7 @@ namespace Text_RPG_Chill
         {
             for (int i = 0; i < hitCount; i++)
             {
-                Unit.Damage(player, stage[stageNum][choiceMonster], skillInfo);
+                Damage(player, stage[stageNum][choiceMonster], skillInfo);
             }
 
             if (stage[stageNum][choiceMonster].HP <= 0)
@@ -504,7 +504,7 @@ namespace Text_RPG_Chill
             {
                 if (!monster.IsDead)
                 {
-                    Unit.Damage(monster, player, 99);
+                    Damage(monster, player, 99);
                 }
             }
         }
