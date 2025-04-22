@@ -140,8 +140,6 @@ namespace Text_RPG_Chill
             player = new Player();
             CreatPlayer();
             MainMenu();
-            int stageNum = 1;
-            Dungeon(stageNum);
         }
 
         //캐릭터 생성 메서드
@@ -206,7 +204,8 @@ namespace Text_RPG_Chill
                     StatusScreen();
                     break;
                 case 2:
-                    inventory();
+                    Inventory();
+                    break;
                 case 3:
                     DungeonSelect();
                     break;
@@ -265,10 +264,20 @@ namespace Text_RPG_Chill
             }
         }
 
+        static void Equip()
+        {
+
+        }
+
+        static void DungeonSelect()
+        {
+
+        }
+
         //던전 메서드
         //기본 정보(몬스터 정보 및 캐릭터 정보) 출력 후 선택지 제공
         //공격하면 전투 메서드 실행
-        static void Dungeon(int stageNum)
+        static void Encounter(int stageNum)
         {
             int[] choices = { 0, 1 };
 
@@ -298,16 +307,16 @@ namespace Text_RPG_Chill
                     Console.WriteLine("도망쳤습니다.");
                     break;
                 case 1:
-                    Fight(stageNum);
+                    CombatMenu(stageNum);
                     break;
             }
         }
 
         //전투 메서드
-        static void Fight(int stageNum)
+        static void CombatMenu(int stageNum)
         {
             int monsterCount = stage[stageNum].Count;
-            while (player.HP > 0 || monsterCount > 0)
+            while (player.HP > 0 && monsterCount > 0)
             {
                 //살아있는 몬스터만 선택지로 나타내기 위한 리스트 셋업
                 List<int> choicesList = new List<int>();
@@ -339,11 +348,12 @@ namespace Text_RPG_Chill
                 Console.WriteLine();
 
                 int choice = Input(choices);
-                Fighting(stageNum, choice - 1, ref monsterCount);
+                Battle(stageNum, choice - 1, ref monsterCount);
             }
+            BattleResult(stageNum, monsterCount);
         }
 
-        static void Fighting(int stageNum, int choiceMonster, ref int monsterCount)
+        static void Battle(int stageNum, int choiceMonster, ref int monsterCount)
         {
             Damage(player, stage[stageNum][choiceMonster]);
 
@@ -385,6 +395,43 @@ namespace Text_RPG_Chill
             Console.WriteLine("0. 다음");
             int choice = Input(choices);
         }
+
+        static void BattleResult(int stageNum, int monsterCount)
+        {
+            int[] choices = { 0 };
+            Console.WriteLine("Battle!! - Result");
+            Console.WriteLine();
+            if (monsterCount <= 0)
+            {
+                Console.WriteLine("Victory");
+                Console.WriteLine();
+                Console.WriteLine($"던전에서 몬스터 {stage[stageNum]}마리를 잡았습니다.");
+                Console.WriteLine();
+                Console.WriteLine($"Lv.{player.Level} {player.Name}");
+                Console.WriteLine($"HP {player.MaxHP} -> {player.HP}");
+                Console.WriteLine();
+                Console.WriteLine("0. 다음");
+            }
+            if (player.HP <= 0)
+            {
+                Console.WriteLine("You Lose");
+                Console.WriteLine();
+                Console.WriteLine($"Lv.{player.Level} {player.Name}");
+                Console.WriteLine($"HP {player.MaxHP} -> 0");
+                Console.WriteLine();
+                Console.WriteLine("0. 다음");
+            }
+            int choice = Input(choices);
+
+            switch (choice)
+            {
+                case 0:
+                    DungeonSelect();
+                    break;
+            }
+        }
+        
+
 
         //인풋 확인 시스템
         static int Input(int[] choices)
