@@ -1,4 +1,7 @@
-﻿namespace Text_RPG_Chill
+﻿using System.Reflection.Emit;
+using System.Xml.Linq;
+
+namespace Text_RPG_Chill
 {
     internal class Program
     {
@@ -55,6 +58,40 @@
             }
         }
 
+        class Item
+        {
+            public int Price { get; set; }
+            public string ItemName { get; set; }
+            public string ItemToolTip { get; set; }
+        }
+
+        class Weapon : Item
+        {
+            public int WeaponAtt { get; set; }
+
+            public Weapon(string name, string toolTip, int att, int price)
+            {
+                ItemName = name;
+                ItemToolTip = toolTip;
+                WeaponAtt = att;
+                Price = price;
+            }
+
+        }
+
+        class Armor : Item 
+        {
+            public int ArmorDfn { get; set; }
+
+            public Armor(string name, string toolTip, int dfn, int price)
+            {
+                ItemName = name;
+                ItemToolTip = toolTip;
+                ArmorDfn = dfn;
+                Price = price;
+            }
+        }
+
         //직업 리스트
         static List<Job> JobList = new List<Job>
         {
@@ -83,6 +120,15 @@
             monsters1,
             monsters2
         };
+
+        static List<Item> inventory = new List<Item>
+        {
+            new Weapon("나무검", "공격력+5 | 무기 | 근방에 자란 나무로 만든 무기 불에 금방 탈 것 같다.", 5, 1000),
+            new Weapon("철 야구방망이", "공격력+50 | 무기 | 묘하게 세계관과 동떨어진 무기 그만큼 화력이 강해보인다.", 50, 25000),
+            new Armor("나무 방패", "방어력+5 | 방어구 | 근방에서 자란 나무로 만든 방패 불에 약해보인다.", 5, 1000),
+            new Armor("무쇠갑옷", "방어력+10 | 방어구 | 마을에서 조금 멀리 떨어진 곳에서 만든 갑옷 단단해보인다.", 10, 2000)
+        };
+
 
         //플레이어 객체 생성
         static Player player;
@@ -136,7 +182,7 @@
         //메인메뉴 메서드
         static void MainMenu()
         {
-            int[] choices = { 0, 1, 2 };
+            int[] choices = { 0, 1, 2, 3 };
 
             Console.WriteLine("메인메뉴");
             Console.WriteLine("이제 전투를 시작할 수 있습니다.");
@@ -159,9 +205,62 @@
                 case 1:
                     StatusScreen();
                     break;
-
                 case 2:
+                    inventory();
+                case 3:
                     DungeonSelect();
+                    break;
+            }
+        }
+
+        static void StatusScreen()
+        {
+            int[] choicese = { 0 };
+
+            Console.WriteLine("1. 상태 보기");
+            Console.WriteLine("캐릭터의 정보가 표시됩니다.");
+            Console.WriteLine();
+            Console.WriteLine($"LV. {player.Level:D2}");
+            Console.WriteLine($"이름 : {player.Name}  ( {player.Job} )");
+            Console.WriteLine($"공격력 : {player.Att}");
+            Console.WriteLine($"방어력 : {player.Dfn}");
+            Console.WriteLine($"체력 : {player.HP}/{player.MaxHP}");
+            Console.WriteLine($"Gold : {player.Gold} G");
+            Console.WriteLine();
+            Console.WriteLine("0. 나가기");
+
+            int choice = Input(choicese);
+
+            switch (choice)
+            {
+                case 0:
+                    MainMenu();
+                    break;
+            }
+        }
+
+        static void Inventory()
+        {
+            int[] choices = { 0, 1 };
+
+            Console.WriteLine("[ 인벤토리 ]");
+            Console.WriteLine("보유 중인 아이템을 관리합니다.");
+            Console.WriteLine();
+            Console.WriteLine("[ 아이템 목록 ]");
+            Console.WriteLine();
+            Console.WriteLine(" 원하시는 행동을 입력해주세요.");
+            Console.WriteLine("1. 장착 관리");
+            Console.WriteLine("0. 나가기");
+
+            int choice = Input(choices);
+
+            switch (choice)
+            {
+                case 0:
+                    MainMenu();
+                    break;
+                case 1:
+                    Equip();
                     break;
             }
         }
