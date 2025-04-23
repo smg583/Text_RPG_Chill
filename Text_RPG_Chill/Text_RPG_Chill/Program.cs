@@ -224,6 +224,7 @@ namespace Text_RPG_Chill
 
         //플레이어 객체 생성
         static Player player;
+        static Random random = new Random();
 
 
 
@@ -371,7 +372,7 @@ namespace Text_RPG_Chill
 
         static void DungeonSelect()
         {
-            int[] choices= Enumerable.Range(0, stage.Count).ToArray();
+            int[] choices = Enumerable.Range(0, stage.Count).ToArray();
             int i;
             Console.WriteLine("[던전]");
             Console.WriteLine("입장할 던전을 선택해주세요.");
@@ -423,6 +424,7 @@ namespace Text_RPG_Chill
             {
                 case 0:
                     Console.WriteLine("도망쳤습니다.");
+                    DungeonSelect();
                     break;
                 case 1:
                     SelectMonster(stageNum, 99);
@@ -487,12 +489,13 @@ namespace Text_RPG_Chill
         //스킬 99는 기본 공격
         static void SelectMonster(int stageNum, int skillInfo)
         {
+            
 
             int monsterCount = stage[stageNum].Count;
             while (player.HP > 0 && monsterCount > 0)
             {
                 List<int> choicesList = new List<int>();
-                int index = 1;
+                int index = 0;
 
                 foreach (Unit monster in stage[stageNum])
                 {
@@ -506,15 +509,18 @@ namespace Text_RPG_Chill
                 int[] choices = choicesList.ToArray();
 
 
-                if (SkillList[skillInfo].IsRandomTarget)
+
+                if (skillInfo != 99 && SkillList[skillInfo].IsRandomTarget)
                 {
+                    List<int> randomTargetList = new List<int>();
                     for (int i = 0; i < SkillList[skillInfo].HitChance; i++)
                     {
-                        Random random = new Random();
                         int x = random.Next(choicesList.Count);
-                        int randomMonster = choicesList[x];
-                        Battle(stageNum, randomMonster, skillInfo, ref monsterCount, SkillList[skillInfo].HitChance);
+                        randomTargetList.Add(x);
                     }
+                    Battle(stageNum, randomTargetList, skillInfo, ref monsterCount);
+                    Encounter(stageNum);
+                    return;
                 }
 
                 Console.WriteLine($"Battle!!");
@@ -534,33 +540,42 @@ namespace Text_RPG_Chill
 
                 int choice = Input(choices);
 
+                List<int> targetList = new List<int>
+                {
+                    choice-1
+                };
+
                 switch (choice)
                 {
                     case 0:
-                        SkillMenu(stageNum);
+                        Encounter(stageNum);
                         break;
                     default:
-                        Battle(stageNum, choice - 1, skillInfo, ref monsterCount);
+                        Battle(stageNum, targetList, skillInfo, ref monsterCount);
                         break;
                 }
+
             }
             BattleResult(stageNum, monsterCount);
         }
 
-        static void Battle(int stageNum, int choiceMonster, int skillInfo, ref int monsterCount, int hitCount = 1)
+        static void Battle(int stageNum, List<int> choiceMonster, int skillInfo, ref int monsterCount)
         {
-            for (int i = 1; i < hitCount; i++)
+            int hitCount = choiceMonster.Count;
+            if (skillInfo != 99)
             {
-                Damage(player, stage[stageNum][choiceMonster], skillInfo);
-                if (skillInfo != 99)
-                {
-                    player.MP -= SkillList[skillInfo].MPCost;
-                }
+                player.MP -= SkillList[skillInfo].MPCost;
             }
 
-            if (stage[stageNum][choiceMonster].HP <= 0)
+            for (int i = 0; i < hitCount; i++)
             {
-                monsterCount--;
+                int targetIndex = choiceMonster[i];
+                Damage(player, stage[stageNum][targetIndex], skillInfo);
+
+                if (stage[stageNum][targetIndex].HP <= 0 && !stage[stageNum][targetIndex].IsDead)
+                {
+                    monsterCount--;
+                }
             }
 
             foreach (Unit monster in stage[stageNum])
@@ -576,7 +591,6 @@ namespace Text_RPG_Chill
         static void Damage(Unit attacker, Unit target, int skillInfo)
         {
             int[] choices = { 0 };
-            Random random = new Random();
             //데미지 오차 10%
             int damageRate = (int)Math.Round(attacker.Att * 0.1);
             int damage = random.Next(attacker.Att - damageRate, attacker.Att + damageRate);
@@ -586,9 +600,11 @@ namespace Text_RPG_Chill
             {
                 skillRate = 1f;
             }
-            skillRate = SkillList[skillInfo].DamageRate;
+            else
+            {
+                skillRate = SkillList[skillInfo].DamageRate;
+            }
             int totalDamage = (int)Math.Round(damage * skillRate);
-            target.HP -= totalDamage;
 
             int damageChance = random.Next(0, 101);
 
@@ -596,22 +612,21 @@ namespace Text_RPG_Chill
             Console.WriteLine();
             Console.WriteLine($"{attacker.Name} 의 공격!");
 
-            if (damageChance > 15)
+            if (damageChance < 15)
             {
                 totalDamage = totalDamage + (int)Math.Round(totalDamage * 1.6f);
                 target.HP -= totalDamage;
                 Console.WriteLine($"{target.Name} 을(를) 맞췄습니다. [데미지 : {totalDamage}] - 치명타 공격!!");
 
             }
-            else if (damageChance <= 90)
+            else if (damageChance < 25)
             {
-                totalDamage = 0;
                 Console.WriteLine($"{target.Name} 을(를) 공격했지만 아무일도 일어나지 않았습니다.");
             }
             else
             {
-                Console.WriteLine($"{target.Name} 을(를) 맞췄습니다. [데미지 : {damage}]");
                 target.HP -= totalDamage;
+                Console.WriteLine($"{target.Name} 을(를) 맞췄습니다. [데미지 : {damage}]");
             }
             Console.WriteLine();
             Console.WriteLine($"Lv.{target.Level} {target.Name}");
@@ -630,7 +645,7 @@ namespace Text_RPG_Chill
             {
                 Console.WriteLine("Victory");
                 Console.WriteLine();
-                Console.WriteLine($"던전에서 몬스터 {stage[stageNum]}마리를 잡았습니다.");
+                Console.WriteLine($"던전에서 몬스터 {stage[stageNum].Count}마리를 잡았습니다.");
                 Console.WriteLine();
                 Console.WriteLine($"Lv.{player.Level} {player.Name}");
                 Console.WriteLine($"HP {player.MaxHP} -> {player.HP}");
@@ -778,7 +793,6 @@ namespace Text_RPG_Chill
                     {
                         quest.isGetReward = true;
                         Console.WriteLine("보상을 획득하였습니다!");
-                        inventory.Add(rewardItem);
                         player.Gold += quest.GoldReward;
                     }
                     else
