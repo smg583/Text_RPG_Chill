@@ -337,6 +337,7 @@ namespace Text_RPG_Chill
                 }
             }
         }
+
         static void StatusScreen()
         {
             int[] choicese = { 0 };
@@ -371,7 +372,7 @@ namespace Text_RPG_Chill
             Console.WriteLine("보유 중인 아이템을 관리합니다.");
             Console.WriteLine();
             Console.WriteLine("[ 아이템 목록 ]");
-            foreach (var item in inventory)
+            foreach (var item in ItemList)
                 Console.WriteLine($"- {item.ItemName}: {item.ItemToolTip}");
             Console.WriteLine();
             Console.WriteLine(" 원하시는 행동을 입력해주세요.");
@@ -396,21 +397,22 @@ namespace Text_RPG_Chill
             Console.WriteLine("[ 장착 관리 ]\n 보유 중인 아이템을 장착합니다.\n");
             Console.WriteLine();
 
-            foreach (var item in inventory)
+            foreach (var item in ItemList)
             {
                 if (item is Weapon weapon)
                 {
-                    player.Atk += weapon.WeaponAtt;
+                    player.Att += weapon.WeaponAtt;
                     //Console.WriteLine("{E}"); - 장착시 표현 구현 필요
                     Console.WriteLine($"{weapon.ItemName} 장착으로 공격력 +{weapon.WeaponAtt}");
                 }
                 else if (item is Armor armor)
                 {
-                    player.Def += armor.ArmorDfn;
+                    player.Dfn += armor.ArmorDfn;
                     //Console.WriteLine("{E}"); - 장착시 표현 구현 필요
                     Console.WriteLine($"{armor.ItemName} 장착으로 방어력 +{armor.ArmorDfn}");
                 }
             }
+        }
 
         static void DungeonSelect()
         {
