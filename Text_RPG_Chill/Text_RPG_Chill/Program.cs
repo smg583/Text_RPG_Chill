@@ -11,8 +11,8 @@ namespace Text_RPG_Chill
         {
             public string Name { get; set; }
             public int Level { get; set; }
-            public int Att { get; set; }
-            public int Dfn { get; set; }
+            public float Att { get; set; }
+            public float Dfn { get; set; }
             public int HP { get; set; }
             public int MaxHP { get; set; }
             public int MP { get; set; }
@@ -24,15 +24,46 @@ namespace Text_RPG_Chill
         {
             public string Job { get; set; }
             public int Gold { get; set; }
-            public float PlayerEXP { get; set; }
+            private int playerEXP { get; set; }
+            public int RequireEXP { get; set; }
+
+            public int PlayerEXP
+            {
+                get => playerEXP;
+                set => playerEXP = value;
+            }
+
+            public void AddEXP(int amount)
+            {
+                playerEXP += amount;
+                CheckLevelUp(); // setter 호출 없이 직접 처리
+            }
+
+            public void CheckLevelUp()
+            {
+                while (playerEXP >= RequireEXP)
+                {
+                    playerEXP -= RequireEXP;
+                    Level++;
+                    Att += 1;
+                    Dfn += 0.5f;
+                    HP = MaxHP;
+                    MP = MaxMP;
+                    RequireEXP = (int)(RequireEXP * 1.2f);
+
+                    Console.WriteLine($"{Name}이(가) 레벨업 했습니다! 현재 레벨: {Level}");
+                }
+            }
         }
+
+    
 
         //몬스터 클래스
         class Monster : Unit
         {
             public int GiveExp { get; set; }
             //몬스터 생성
-            public Monster(string mosterName, int monsterLV, int monsterAtt, int monsterHP, int giveExp)
+            public Monster(string mosterName, int monsterLV, float monsterAtt, int monsterHP, int giveExp)
             {
                 Name = mosterName;
                 Level = monsterLV;
@@ -81,9 +112,9 @@ namespace Text_RPG_Chill
         //아이템 - 무기
         class Weapon : Item
         {
-            public int WeaponAtt { get; set; }
+            public float WeaponAtt { get; set; }
 
-            public Weapon(string name, string toolTip, int att, int price)
+            public Weapon(string name, string toolTip, float att, int price)
             {
                 ItemName = name;
                 ItemToolTip = toolTip;
@@ -96,9 +127,9 @@ namespace Text_RPG_Chill
         //아이템 - 방어구
         class Armor : Item
         {
-            public int ArmorDfn { get; set; }
+            public float ArmorDfn { get; set; }
 
-            public Armor(string name, string toolTip, int dfn, int price)
+            public Armor(string name, string toolTip, float dfn, int price)
             {
                 ItemName = name;
                 ItemToolTip = toolTip;
@@ -110,10 +141,10 @@ namespace Text_RPG_Chill
         //방패 아이템 타입 추가
         class Shield : Item
         {
-            public int ShieldDfn { get; set; }
-            public int ShieldAtt { get; set; }
+            public float ShieldDfn { get; set; }
+            public float ShieldAtt { get; set; }
 
-            public Shield(string name, string toolTip, int att, int dfn, int price)
+            public Shield(string name, string toolTip, float att, float dfn, int price)
             {
                 ItemName = name;
                 ItemToolTip = toolTip;
@@ -293,6 +324,7 @@ namespace Text_RPG_Chill
             player.Gold = choiceJob.StartGold;
             player.Job = choiceJob.Name; // 버그픽스 : player.Job = choiceJob으로 실행하면 상태창에서 직업이 아닌 Pogram.Job이 출력 되어 player 클래스의 Job을 string으로 변환하여 Job.Name 할당
             player.PlayerEXP = 0;
+            player.RequireEXP = 50;
         }
 
         //메인메뉴 메서드 -- 인벤토리 / 퀘스트 선택사항 추가
@@ -352,6 +384,7 @@ namespace Text_RPG_Chill
             Console.WriteLine($"HP : {player.HP}/{player.MaxHP}");
             Console.WriteLine($"MP : {player.MP}/{player.MaxMP}");
             Console.WriteLine($"Gold : {player.Gold} G");
+            Console.WriteLine($"EXP : {player.PlayerEXP}/{player.RequireEXP}");
             Console.WriteLine();
             Console.WriteLine("0. 나가기");
 
@@ -466,7 +499,7 @@ namespace Text_RPG_Chill
                 }
                 Console.WriteLine();
                 Console.WriteLine("[내정보]");
-                Console.WriteLine($"LV.{player.Level} {player.Name} ({player.Name})");
+                Console.WriteLine($"LV.{player.Level} {player.Name} ({player.Job})");
                 Console.WriteLine($"HP {player.HP}/{player.MaxHP}");
                 Console.WriteLine($"MP {player.MP}/{player.MaxMP}");
                 Console.WriteLine();
@@ -516,7 +549,7 @@ namespace Text_RPG_Chill
             }
             Console.WriteLine();
             Console.WriteLine("[내정보]");
-            Console.WriteLine($"LV.{player.Level} {player.Name} ({player.Name})");
+            Console.WriteLine($"LV.{player.Level} {player.Name} ({player.Job})");
             Console.WriteLine($"HP {player.HP}/{player.MaxHP}");
             Console.WriteLine($"MP {player.MP}/{player.MaxMP}");
             Console.WriteLine();
@@ -643,8 +676,8 @@ namespace Text_RPG_Chill
         {
             int[] choices = { 0 };
             //데미지 오차 10%
-            int damageRate = (int)Math.Round(attacker.Att * 0.1);
-            int damage = random.Next(attacker.Att - damageRate, attacker.Att + damageRate);
+            int damageRate = (int)Math.Round(attacker.Att * 0.1f);
+            int damage = random.Next((int)attacker.Att - damageRate, (int)attacker.Att + damageRate);
             int prevHP = target.HP;
             float skillRate;
             if (skillInfo == 99)
@@ -694,9 +727,13 @@ namespace Text_RPG_Chill
             Console.WriteLine();
             if (!combatStage[stageNum].Any(mon => !mon.IsDead))
             {
+                int totalExp = combatStage[stageNum].Sum(mon => ((Monster)mon).GiveExp);
+                player.AddEXP(totalExp);
+
                 Console.WriteLine("Victory");
                 Console.WriteLine();
                 Console.WriteLine($"던전에서 몬스터 {stage[stageNum].Count}마리를 잡았습니다.");
+                Console.WriteLine($"획득 경험치 : {totalExp}");
                 Console.WriteLine();
                 Console.WriteLine($"Lv.{player.Level} {player.Name}");
                 Console.WriteLine($"HP {player.MaxHP} -> {player.HP}");
@@ -888,7 +925,5 @@ namespace Text_RPG_Chill
                 }
             }
         }
-
-
     }
 }
