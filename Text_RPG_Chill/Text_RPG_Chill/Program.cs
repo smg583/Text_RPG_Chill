@@ -14,7 +14,6 @@ namespace Text_RPG_Chill
             public int Dfn { get; set; }
             public int HP { get; set; }
             public int MaxHP { get; set; }
-            public int MaxHP { get; set; }
             public int MP { get; set; }
             public int MaxMP { get; set; }
             public bool IsDead => HP <= 0;
@@ -22,7 +21,7 @@ namespace Text_RPG_Chill
         //임시 플레이어 클래스
         class Player : Unit
         {
-            public Job Job { get; set; }
+            public string Job { get; set; }
             public int Gold { get; set; }
             public float PlayerEXP { get; set; }
         }
@@ -97,6 +96,22 @@ namespace Text_RPG_Chill
             }
         }
 
+        //방패 아이템 타입 추가
+        class Shield : Item
+        {
+            public int ShieldDfn { get; set; }
+            public int ShieldAtt { get; set; }
+
+            public Shield(string name, string toolTip, int att, int dfn, int price)
+            {
+                ItemName = name;
+                ItemToolTip = toolTip;
+                ShieldAtt = att;
+                ShieldDfn = dfn;
+                Price = price;
+            }
+        }
+
         class Skill
         {
             public string Name { get; set; }
@@ -145,11 +160,11 @@ namespace Text_RPG_Chill
 
         //직업 리스트 -- 25/04/22 도적 및 팔라딘 추가 완료
         static List<Job> JobList = new List<Job>
-{
-    new Job("전사", 1, 10, 5, 100, 1500),
-    new Job("도적", 1, 12, 3, 100, 1500),
-    new Job("팔라딘", 1, 5, 10, 100, 1500)
-};
+        {
+            new Job("전사", 1, 10, 5, 100, 50, 1500),
+            new Job("도적", 1, 12, 3, 100, 50, 1500),
+            new Job("팔라딘", 1, 5, 10, 100, 50, 1500)
+        };
 
         //스테이지 별 몬스터 리스트
         static List<Monster> monsters1 = new List<Monster>
@@ -282,7 +297,6 @@ namespace Text_RPG_Chill
                     case 0:
                         Console.WriteLine("게임을 종료합니다");
                         return;
-
                     case 1:
                         StatusScreen();
                         break;
@@ -302,7 +316,7 @@ namespace Text_RPG_Chill
         {
             int[] choicese = { 0 };
 
-            Console.WriteLine("1. 상태 보기");
+            Console.WriteLine("[상태 보기]");
             Console.WriteLine("캐릭터의 정보가 표시됩니다.");
             Console.WriteLine();
             Console.WriteLine($"LV. {player.Level:D2}");
@@ -310,6 +324,7 @@ namespace Text_RPG_Chill
             Console.WriteLine($"공격력 : {player.Att}");
             Console.WriteLine($"방어력 : {player.Dfn}");
             Console.WriteLine($"HP : {player.HP}/{player.MaxHP}");
+            Console.WriteLine($"MP : {player.MP}/{player.MaxMP}");
             Console.WriteLine($"Gold : {player.Gold} G");
             Console.WriteLine();
             Console.WriteLine("0. 나가기");
@@ -355,7 +370,26 @@ namespace Text_RPG_Chill
 
         static void DungeonSelect()
         {
+            int[] choices= Enumerable.Range(0, stage.Count).ToArray();
+            int i;
+            Console.WriteLine("[던전]");
+            Console.WriteLine("입장할 던전을 선택해주세요.");
+            Console.WriteLine();
+            for (i = 0; i < stage.Count; i++)
+            {
+                Console.WriteLine($"{i + 1}. {i + 1}층");
+            }
 
+            int choice = Input(choices);
+
+            switch (choice)
+            {
+                case 0:
+                    return;
+                default:
+                    Encounter(choice - 1);
+                    break;
+            }
         }
 
         //던전 메서드
@@ -400,7 +434,19 @@ namespace Text_RPG_Chill
 
         static void SkillMenu(int stageNum)
         {
-            int[] choices = Enumerable.Range(0, SkillList.Count).ToArray();
+            List<int> choicesList = new List<int>();
+            int index = 1;
+
+            foreach (Skill skill in SkillList)
+            {
+                if (player.MP >= skill.MPCost)
+                {
+                    choicesList.Add(index);
+                }
+                index++;
+            }
+
+            int[] choices = choicesList.ToArray();
 
             Console.WriteLine($"Battle!!");
             Console.WriteLine();
@@ -415,12 +461,14 @@ namespace Text_RPG_Chill
             Console.WriteLine($"HP {player.HP}/{player.MaxHP}");
             Console.WriteLine($"MP {player.MP}/{player.MaxMP}");
             Console.WriteLine();
+
             for (int i = 0; i < SkillList.Count; i++)
             {
                 Console.WriteLine($"{i + 1} {SkillList[i].Name} - MP {SkillList[i].MPCost}");
                 Console.WriteLine($"{SkillList[i].ToolTip}");
             }
             Console.WriteLine("0. 취소");
+
             int choice = Input(choices);
 
             switch (choice)
@@ -481,18 +529,32 @@ namespace Text_RPG_Chill
                 Console.WriteLine($"HP {player.HP}/{player.MaxHP}");
                 Console.WriteLine($"MP {player.MP}/{player.MaxMP}");
                 Console.WriteLine();
+                Console.WriteLine("0. 취소");
 
                 int choice = Input(choices);
-                Battle(stageNum, choice - 1, skillInfo, ref monsterCount);
+
+                switch (choice)
+                {
+                    case 0:
+                        SkillMenu(stageNum);
+                        break;
+                    default:
+                        Battle(stageNum, choice - 1, skillInfo, ref monsterCount);
+                        break;
+                }
             }
             BattleResult(stageNum, monsterCount);
         }
 
         static void Battle(int stageNum, int choiceMonster, int skillInfo, ref int monsterCount, int hitCount = 1)
         {
-            for (int i = 0; i < hitCount; i++)
+            for (int i = 1; i < hitCount; i++)
             {
                 Damage(player, stage[stageNum][choiceMonster], skillInfo);
+                if (skillInfo != 99)
+                {
+                    player.MP -= SkillList[skillInfo].MPCost;
+                }
             }
 
             if (stage[stageNum][choiceMonster].HP <= 0)
@@ -525,8 +587,6 @@ namespace Text_RPG_Chill
             skillRate = SkillList[skillInfo].DamageRate;
             int totalDamage = (int)Math.Round(damage * skillRate);
             target.HP -= totalDamage;
-
-
 
             int damageChance = random.Next(0, 101);
 
@@ -603,10 +663,9 @@ namespace Text_RPG_Chill
                 int num = 1;
 
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("QUEST!!\n");
+                Console.WriteLine("[QUEST]\n");
                 Console.ResetColor();
                 Console.WriteLine("다양한 보상을 얻을 수 있는 퀘스트입니다.\n");
-
 
                 foreach (Quest quest in questsList)
                 {
@@ -651,7 +710,6 @@ namespace Text_RPG_Chill
 
 
         }
-
 
         static void QuestAcceptScreen(Quest quest, Item rewardItem)
         {
