@@ -1,4 +1,5 @@
-﻿using System.Reflection.Emit;
+﻿using System.Net.Http.Headers;
+using System.Reflection.Emit;
 using System.Xml.Linq;
 
 namespace Text_RPG_Chill
@@ -38,6 +39,11 @@ namespace Text_RPG_Chill
                 Att = monsterAtt;
                 HP = monsterHP;
                 GiveExp = giveExp;
+            }
+
+            public Monster Clone()
+            {
+                return new Monster(this.Name, this.Level, this.Att, this.HP, this.GiveExp);
             }
         }
 
@@ -174,19 +180,19 @@ namespace Text_RPG_Chill
         };
 
         //스테이지 별 몬스터 리스트
-        static List<Monster> monsters = new List<Monster>
+        static Dictionary<int, Monster> monsters = new Dictionary<int, Monster>
         {
-            new Monster("미니언", 2, 5, 15, 10),
-            new Monster("대포미니언", 5, 8, 25, 25),
-            new Monster("공허충", 3, 9, 10, 15),
-            new Monster("공성미니언", 7, 10, 25, 35)
+            { 0, new Monster("미니언", 2, 5, 15, 10) },
+            { 1, new Monster("대포미니언", 5, 8, 25, 25) },
+            { 2, new Monster("공허충", 3, 9, 10, 15) },
+            { 3, new Monster("공성미니언", 7, 10, 25, 35) }
         };
 
         //스테이지 리스트
-        static List<List<Monster>> stage = new List<List<Monster>>
+        static List<List<int>> stage = new List<List<int>>
         {
-            new List<Monster> { monsters[0], monsters[1], monsters[2] },
-            new List<Monster> { monsters[0], monsters[1], monsters[3] }
+            new List<int> { 0, 1, 2 },
+            new List<int> { 0, 1, 3 }
         };
 
         static List<Item> ItemList = new List<Item>
@@ -221,6 +227,9 @@ namespace Text_RPG_Chill
             new Skill("알파 스트라이크", "공격력 * 2 로 하나의 적을 공격합니다.", 2.0f, 1, 10, false),
             new Skill("더블 스트라이크", "공격력 * 1.5 로 2명의 적을 랜덤으로 공겨합니다.", 1.5f, 2, 15, true)
         };
+
+        static List<List<Monster>> combatStage = new List<List<Monster>>();
+
 
         //플레이어 객체 생성
         static Player player;
@@ -381,7 +390,7 @@ namespace Text_RPG_Chill
             {
                 Console.WriteLine($"{i + 1}. {i + 1}층");
             }
-
+            Console.WriteLine($"0. 취소");
             int choice = Input(choices);
 
             switch (choice)
@@ -389,6 +398,7 @@ namespace Text_RPG_Chill
                 case 0:
                     return;
                 default:
+                    combatStage = stage.Select(list => list.Select(id => monsters[id].Clone()).ToList()).ToList();
                     Encounter(choice - 1);
                     break;
             }
@@ -401,11 +411,17 @@ namespace Text_RPG_Chill
         {
             int[] choices = { 0, 1, 2 };
 
+            if (!combatStage[stageNum].Any(mon => !mon.IsDead))
+            {
+                BattleResult(stageNum);
+                DungeonSelect();
+            }
+
             Console.WriteLine($"Battle!!");
             Console.WriteLine();
-            for (int i = 0; i < stage[stageNum].Count; i++)
+            for (int i = 0; i < combatStage[stageNum].Count; i++)
             {
-                Unit monster = stage[stageNum][i];
+                Unit monster = combatStage[stageNum][i];
                 Console.WriteLine($"LV. {monster.Level} {monster.Name} HP {(monster.IsDead ? "Dead" : monster.HP)}");
             }
             Console.WriteLine();
@@ -455,7 +471,7 @@ namespace Text_RPG_Chill
             Console.WriteLine();
             for (int i = 0; i < stage[stageNum].Count; i++)
             {
-                Unit monster = stage[stageNum][i];
+                Unit monster = combatStage[stageNum][i];
                 Console.WriteLine($"LV. {monster.Level} {monster.Name} HP {(monster.IsDead ? "Dead" : monster.HP)}");
             }
             Console.WriteLine();
@@ -473,31 +489,24 @@ namespace Text_RPG_Chill
             Console.WriteLine("0. 취소");
 
             int choice = Input(choices);
-
-            switch (choice)
+            if (choice == 0)
             {
-                case 0:
-                    Encounter(stageNum);
-                    break;
-                default:
-                    SelectMonster(stageNum, choice - 1);
-                    break;
+                Encounter(stageNum);
+                return;  // ← 반드시 return 필요!
             }
+            SelectMonster(stageNum, choice - 1);
         }
 
         //전투 메서드
         //스킬 99는 기본 공격
         static void SelectMonster(int stageNum, int skillInfo)
         {
-            
-
-            int monsterCount = stage[stageNum].Count;
-            while (player.HP > 0 && monsterCount > 0)
+            while (player.HP > 0 && combatStage[stageNum].Any(mon => !mon.IsDead))
             {
                 List<int> choicesList = new List<int>();
-                int index = 0;
+                int index = 1;
 
-                foreach (Unit monster in stage[stageNum])
+                foreach (Unit monster in combatStage[stageNum])
                 {
                     if (!monster.IsDead)
                     {
@@ -506,29 +515,29 @@ namespace Text_RPG_Chill
                     index++;
                 }
 
-                int[] choices = choicesList.ToArray();
-
-
-
                 if (skillInfo != 99 && SkillList[skillInfo].IsRandomTarget)
                 {
                     List<int> randomTargetList = new List<int>();
                     for (int i = 0; i < SkillList[skillInfo].HitChance; i++)
                     {
                         int x = random.Next(choicesList.Count);
-                        randomTargetList.Add(x);
+                        randomTargetList.Add(choicesList[x] - 1);
                     }
-                    Battle(stageNum, randomTargetList, skillInfo, ref monsterCount);
+                    Battle(stageNum, randomTargetList, skillInfo);
                     Encounter(stageNum);
                     return;
                 }
 
+                choicesList.Add(0);
+                int[] choices = choicesList.ToArray();
+
                 Console.WriteLine($"Battle!!");
                 Console.WriteLine();
-                for (int i = 0; i < stage[stageNum].Count; i++)
+                int y = 1;
+                foreach (Unit monster in combatStage[stageNum])
                 {
-                    Unit monster = stage[stageNum][i];
-                    Console.WriteLine($"[{i + 1}] LV. {monster.Level} {monster.Name} HP {(monster.IsDead ? "Dead" : monster.HP)}");
+                    Console.WriteLine($"[{y}] LV. {monster.Level} {monster.Name} HP {(monster.IsDead ? "Dead" : monster.HP)}");
+                    y++;
                 }
                 Console.WriteLine();
                 Console.WriteLine("[내정보]");
@@ -539,29 +548,29 @@ namespace Text_RPG_Chill
                 Console.WriteLine("0. 취소");
 
                 int choice = Input(choices);
+                int targetMonster = choice - 1;
 
                 List<int> targetList = new List<int>
                 {
-                    choice-1
+                    targetMonster
                 };
 
-                switch (choice)
+                if (choice == 0)
                 {
-                    case 0:
-                        Encounter(stageNum);
-                        break;
-                    default:
-                        Battle(stageNum, targetList, skillInfo, ref monsterCount);
-                        break;
+                    return;
                 }
-
+                else 
+                { 
+                    Battle(stageNum, targetList, skillInfo);
+                    Encounter(stageNum);
+                    break;
+                }
             }
-            BattleResult(stageNum, monsterCount);
         }
 
-        static void Battle(int stageNum, List<int> choiceMonster, int skillInfo, ref int monsterCount)
+        static void Battle(int stageNum, List<int> choiceMonster, int skillInfo)
         {
-            int hitCount = choiceMonster.Count;
+            int hitCount = SkillList[skillInfo].HitChance;
             if (skillInfo != 99)
             {
                 player.MP -= SkillList[skillInfo].MPCost;
@@ -570,15 +579,10 @@ namespace Text_RPG_Chill
             for (int i = 0; i < hitCount; i++)
             {
                 int targetIndex = choiceMonster[i];
-                Damage(player, stage[stageNum][targetIndex], skillInfo);
-
-                if (stage[stageNum][targetIndex].HP <= 0 && !stage[stageNum][targetIndex].IsDead)
-                {
-                    monsterCount--;
-                }
+                Damage(player, combatStage[stageNum][targetIndex], skillInfo);
             }
 
-            foreach (Unit monster in stage[stageNum])
+            foreach (Unit monster in combatStage[stageNum])
             {
                 if (!monster.IsDead)
                 {
@@ -626,7 +630,7 @@ namespace Text_RPG_Chill
             else
             {
                 target.HP -= totalDamage;
-                Console.WriteLine($"{target.Name} 을(를) 맞췄습니다. [데미지 : {damage}]");
+                Console.WriteLine($"{target.Name} 을(를) 맞췄습니다. [데미지 : {totalDamage}]");
             }
             Console.WriteLine();
             Console.WriteLine($"Lv.{target.Level} {target.Name}");
@@ -636,12 +640,12 @@ namespace Text_RPG_Chill
             int choice = Input(choices);
         }
 
-        static void BattleResult(int stageNum, int monsterCount)
+        static void BattleResult(int stageNum)
         {
             int[] choices = { 0 };
             Console.WriteLine("Battle!! - Result");
             Console.WriteLine();
-            if (monsterCount <= 0)
+            if (!combatStage[stageNum].Any(mon => !mon.IsDead))
             {
                 Console.WriteLine("Victory");
                 Console.WriteLine();
@@ -666,6 +670,7 @@ namespace Text_RPG_Chill
             switch (choice)
             {
                 case 0:
+                    combatStage = stage.Select(list => list.Select(id => monsters[id].Clone()).ToList()).ToList(); // 던전 선택 전 초기화
                     DungeonSelect();
                     break;
             }
@@ -837,5 +842,7 @@ namespace Text_RPG_Chill
                 }
             }
         }
+
+
     }
 }
