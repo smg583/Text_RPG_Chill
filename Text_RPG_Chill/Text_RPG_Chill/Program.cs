@@ -29,13 +29,15 @@ namespace Text_RPG_Chill
         //몬스터 클래스
         class Monster : Unit
         {
+            public int GiveExp { get; set; }
             //몬스터 생성
-            public Monster(string mosterName, int monsterLV, int monsterAtt, int monsterHP)
+            public Monster(string mosterName, int monsterLV, int monsterAtt, int monsterHP, int giveExp)
             {
                 Name = mosterName;
                 Level = monsterLV;
                 Att = monsterAtt;
                 HP = monsterHP;
+                GiveExp = giveExp;
             }
         }
 
@@ -62,6 +64,7 @@ namespace Text_RPG_Chill
             }
         }
 
+        //아이템 클래스
         class Item
         {
             public int Price { get; set; }
@@ -69,6 +72,7 @@ namespace Text_RPG_Chill
             public string ItemToolTip { get; set; }
         }
 
+        //아이템 - 무기
         class Weapon : Item
         {
             public int WeaponAtt { get; set; }
@@ -83,6 +87,7 @@ namespace Text_RPG_Chill
 
         }
 
+        //아이템 - 방어구
         class Armor : Item
         {
             public int ArmorDfn { get; set; }
@@ -112,6 +117,7 @@ namespace Text_RPG_Chill
             }
         }
 
+        //스킬 클래스
         class Skill
         {
             public string Name { get; set; }
@@ -133,6 +139,7 @@ namespace Text_RPG_Chill
             }
         }
 
+        //퀘스트 클래스
         class Quest
         {
             public string Name { get; set; }
@@ -167,26 +174,19 @@ namespace Text_RPG_Chill
         };
 
         //스테이지 별 몬스터 리스트
-        static List<Monster> monsters1 = new List<Monster>
+        static List<Monster> monsters = new List<Monster>
         {
-            new Monster("미니언", 2, 5, 15),
-            new Monster("대포미니언", 5, 8, 25),
-            new Monster("공허충", 3, 9, 10)
-        };
-
-        static List<Monster> monsters2 = new List<Monster>
-        {
-            new Monster("미니언1", 2, 5, 15),
-            new Monster("대포미니언1", 5, 8, 25),
-            new Monster("공허충1", 3, 9, 10),
-            new Monster("공성미니언", 7, 10, 25)
+            new Monster("미니언", 2, 5, 15, 10),
+            new Monster("대포미니언", 5, 8, 25, 25),
+            new Monster("공허충", 3, 9, 10, 15),
+            new Monster("공성미니언", 7, 10, 25, 35)
         };
 
         //스테이지 리스트
         static List<List<Monster>> stage = new List<List<Monster>>
         {
-            monsters1,
-            monsters2
+            new List<Monster> { monsters[0], monsters[1], monsters[2] },
+            new List<Monster> { monsters[0], monsters[1], monsters[3] }
         };
 
         static List<Item> ItemList = new List<Item>
@@ -218,7 +218,8 @@ namespace Text_RPG_Chill
 
         static List<Skill> SkillList = new List<Skill>
         {
-            new Skill("알파 스트라이크", "공격력 * 2 로 하나의 적을 공격합니다.", 2.0f, 1, 10, false)
+            new Skill("알파 스트라이크", "공격력 * 2 로 하나의 적을 공격합니다.", 2.0f, 1, 10, false),
+            new Skill("더블 스트라이크", "공격력 * 1.5 로 2명의 적을 랜덤으로 공겨합니다.", 1.5f, 2, 15, true)
         };
 
         //플레이어 객체 생성
@@ -569,6 +570,7 @@ namespace Text_RPG_Chill
                     Damage(monster, player, 99);
                 }
             }
+            player.MP += 10;
         }
 
         static void Damage(Unit attacker, Unit target, int skillInfo)
