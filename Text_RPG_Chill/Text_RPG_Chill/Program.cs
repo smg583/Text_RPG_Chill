@@ -383,7 +383,7 @@ namespace Text_RPG_Chill
         {
             while (true)
             {
-                int[] choices = Enumerable.Range(0, stage.Count).ToArray();
+                int[] choices = Enumerable.Range(1, stage.Count).Append(0).ToArray();
                 int i;
                 Console.WriteLine("[던전]");
                 Console.WriteLine("입장할 던전을 선택해주세요.");
@@ -416,7 +416,7 @@ namespace Text_RPG_Chill
 
             while (true)
             {
-                if (!combatStage[stageNum].Any(mon => !mon.IsDead))
+                if (!combatStage[stageNum].Any(mon => !mon.IsDead) || player.HP <= 0)
                 {
                     BattleResult(stageNum);
                     return;
@@ -594,7 +594,14 @@ namespace Text_RPG_Chill
                     Damage(monster, player, 99);
                 }
             }
-            player.MP += 10;
+            if (player.MP < player.MaxMP)
+            {
+                player.MP += 10;
+                if (player.MP >= player.MaxMP)
+                {
+                    player.MP = player.MaxMP;
+                }
+            }
         }
 
         static void Damage(Unit attacker, Unit target, int skillInfo)
@@ -666,7 +673,7 @@ namespace Text_RPG_Chill
                 Console.WriteLine("You Lose");
                 Console.WriteLine();
                 Console.WriteLine($"Lv.{player.Level} {player.Name}");
-                Console.WriteLine($"HP {player.MaxHP} -> 0");
+                Console.WriteLine($"HP {player.HP} -> 0");
                 Console.WriteLine();
                 Console.WriteLine("0. 다음");
             }
