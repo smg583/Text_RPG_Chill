@@ -123,6 +123,18 @@ namespace Text_RPG_Chill
             }
         }
 
+        class Potion : Item
+        {
+            public int Heal { get; set; }
+            public Potion(string name, string toolTip, int heal, int price)
+            {
+                ItemName = name;
+                ItemToolTip = toolTip;
+                Heal = heal;
+                Price = price;
+            }
+        }
+
         //스킬 클래스
         class Skill
         {
@@ -197,10 +209,12 @@ namespace Text_RPG_Chill
 
         static List<Item> ItemList = new List<Item>
         {
-            new Weapon("나무검", "공격력+5 | 무기 | 근방에 자란 나무로 만든 무기 불에 금방 탈 것 같다.", 5, 1000),
-            new Weapon("철 야구방망이", "공격력+50 | 무기 | 묘하게 세계관과 동떨어진 무기 그만큼 화력이 강해보인다.", 50, 25000),
-            new Armor("나무 방패", "방어력+5 | 방어구 | 근방에서 자란 나무로 만든 방패 불에 약해보인다.", 5, 1000),
-            new Armor("무쇠갑옷", "방어력+10 | 방어구 | 마을에서 조금 멀리 떨어진 곳에서 만든 갑옷 단단해보인다.", 10, 2000)
+            new Weapon("나무검", "공격력+5 | 무기 | 근방에 자란 나무로 만든 무기 불에 금방 탈 것 같다.", 5, 100),
+            new Weapon("철 야구방망이", "공격력+50 | 무기 | 묘하게 세계관과 동떨어진 무기 그만큼 화력이 강해보인다.", 50, 500),
+            new Armor("나무 방패", "방어력+5 | 방어구 | 근방에서 자란 나무로 만든 방패 불에 약해보인다.", 5, 80),
+            new Armor("무쇠갑옷", "방어력+10 | 방어구 | 마을에서 조금 멀리 떨어진 곳에서 만든 갑옷 단단해보인다.", 10, 200),
+            new Potion("빨간 포션", "체력+30 | 포션 | 유리병에 담긴 새빨간 포션.", 30, 30),
+            new Potion("파란 포션", "체력+50 | 포션 | 유리병에 담긴 파란 포션.", 50, 50)
         };
 
         //퀘스트 리스트 - 퀘스트 이름, 내용, 달성 조건, 보상 순
@@ -323,6 +337,7 @@ namespace Text_RPG_Chill
                 }
             }
         }
+
         static void StatusScreen()
         {
             int[] choicese = { 0 };
@@ -357,6 +372,8 @@ namespace Text_RPG_Chill
             Console.WriteLine("보유 중인 아이템을 관리합니다.");
             Console.WriteLine();
             Console.WriteLine("[ 아이템 목록 ]");
+            foreach (var item in ItemList)
+                Console.WriteLine($"- {item.ItemName}: {item.ItemToolTip}");
             Console.WriteLine();
             Console.WriteLine(" 원하시는 행동을 입력해주세요.");
             Console.WriteLine("1. 장착 관리");
@@ -376,7 +393,25 @@ namespace Text_RPG_Chill
 
         static void Equip()
         {
+            Console.Clear();
+            Console.WriteLine("[ 장착 관리 ]\n 보유 중인 아이템을 장착합니다.\n");
+            Console.WriteLine();
 
+            foreach (var item in ItemList)
+            {
+                if (item is Weapon weapon)
+                {
+                    player.Att += weapon.WeaponAtt;
+                    //Console.WriteLine("{E}"); - 장착시 표현 구현 필요
+                    Console.WriteLine($"{weapon.ItemName} 장착으로 공격력 +{weapon.WeaponAtt}");
+                }
+                else if (item is Armor armor)
+                {
+                    player.Dfn += armor.ArmorDfn;
+                    //Console.WriteLine("{E}"); - 장착시 표현 구현 필요
+                    Console.WriteLine($"{armor.ItemName} 장착으로 방어력 +{armor.ArmorDfn}");
+                }
+            }
         }
 
         static void DungeonSelect()
