@@ -426,28 +426,128 @@ namespace Text_RPG_Chill
             }
         }
 
+        // Fix for CS0446: Replace 'Inventory' with 'ItemList' as 'Inventory' is not defined as a collection.
         static void Equip()
         {
             Console.Clear();
             Console.WriteLine("[ 장착 관리 ]\n 보유 중인 아이템을 장착합니다.\n");
             Console.WriteLine();
 
-            foreach (var item in ItemList)
+            Weapon equippedWeapon = null;
+            Armor equippedArmor = null;
+
+            while (true)
             {
-                if (item is Weapon weapon)
+                Console.Clear();
+                Console.WriteLine("==== [장비 목록] ====");
+
+                int index = 1;
+                Dictionary<int, Item> itemMap = new Dictionary<int, Item>();
+
+                // Use 'ItemList' instead of 'Inventory' as 'Inventory' is not defined.
+                foreach (var item in ItemList)
                 {
-                    player.Att += weapon.WeaponAtt;
-                    //Console.WriteLine("{E}"); - 장착시 표현 구현 필요
-                    Console.WriteLine($"{weapon.ItemName} 장착으로 공격력 +{weapon.WeaponAtt}");
+                    itemMap[index] = item;
+
+                    Console.Write($"{index}. ");
+
+                    // 무기 표시
+                    if (item is Weapon weapon)
+                    {
+                        if (equippedWeapon == weapon)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.Write("[E] ");
+                            Console.ResetColor();
+                        }
+                        Console.WriteLine($"{weapon.ItemName} (공격력 +{weapon.WeaponAtt})");
+                    }
+
+                    // 방어구 표시
+                    else if (item is Armor armor)
+                    {
+                        if (equippedArmor == armor)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.Write("[E] ");
+                            Console.ResetColor();
+                        }
+                        Console.WriteLine($"{armor.ItemName} (방어력 +{armor.ArmorDfn})");
+                    }
+
+                    index++;
                 }
-                else if (item is Armor armor)
+
+                Console.WriteLine("\n번호를 입력해 장비를 장착/해제하세요.");
+                Console.WriteLine("0. 나가기");
+                Console.Write("\n>> ");
+
+                string input = Console.ReadLine();
+                if (input == "0")
                 {
-                    player.Dfn += armor.ArmorDfn;
-                    //Console.WriteLine("{E}"); - 장착시 표현 구현 필요
-                    Console.WriteLine($"{armor.ItemName} 장착으로 방어력 +{armor.ArmorDfn}");
+                    MainMenu();
+                    break;
                 }
+
+                if (int.TryParse(input, out int choice) && itemMap.ContainsKey(choice))
+                {
+                    var selectedItem = itemMap[choice];
+
+                    if (selectedItem is Weapon weapon)
+                    {
+                        if (equippedWeapon == weapon)
+                        {
+                            // 해제
+                            equippedWeapon = null;
+                            player.Att -= weapon.WeaponAtt;
+                            Console.WriteLine($"{weapon.ItemName}을(를) 해제했습니다. (공격력 -{weapon.WeaponAtt})");
+                        }
+                        else
+                        {
+                            // 기존 장비 해제
+                            if (equippedWeapon != null)
+                            {
+                                player.Att -= equippedWeapon.WeaponAtt;
+                            }
+
+                            equippedWeapon = weapon;
+                            player.Att += weapon.WeaponAtt;
+                            Console.WriteLine($"{weapon.ItemName}을(를) 장착했습니다. (공격력 +{weapon.WeaponAtt})");
+                        }
+                    }
+                    else if (selectedItem is Armor armor)
+                    {
+                        if (equippedArmor == armor)
+                        {
+                            // 해제
+                            equippedArmor = null;
+                            player.Dfn -= armor.ArmorDfn;
+                            Console.WriteLine($"{armor.ItemName}을(를) 해제했습니다. (방어력 -{armor.ArmorDfn})");
+                        }
+                        else
+                        {
+                            // 기존 장비 해제
+                            if (equippedArmor != null)
+                            {
+                                player.Dfn -= equippedArmor.ArmorDfn;
+                            }
+
+                            equippedArmor = armor;
+                            player.Dfn += armor.ArmorDfn;
+                            Console.WriteLine($"{armor.ItemName}을(를) 장착했습니다. (방어력 +{armor.ArmorDfn})");
+                        }
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("잘못된 입력입니다.");
+                }
+
+                Console.WriteLine("\n계속하려면 Enter를 누르세요...");
+                Console.ReadLine();
             }
         }
+        
 
         static void DungeonSelect()
         {
