@@ -49,7 +49,7 @@ namespace Text_RPG_Chill
                     Dfn += 0.5f;
                     HP = MaxHP;
                     MP = MaxMP;
-                    RequireEXP = (int)(RequireEXP * 1.2f);
+                    RequireEXP = (5 * Level * Level + 35 * Level - 20) / 2;
 
                     Console.WriteLine($"{Name}이(가) 레벨업 했습니다! 현재 레벨: {Level}");
                 }
@@ -225,10 +225,10 @@ namespace Text_RPG_Chill
         //스테이지 별 몬스터 리스트
         static Dictionary<int, Monster> monsters = new Dictionary<int, Monster>
         {
-            { 0, new Monster("미니언", 2, 5, 15, 10) },
-            { 1, new Monster("대포미니언", 5, 8, 25, 25) },
-            { 2, new Monster("공허충", 3, 9, 10, 15) },
-            { 3, new Monster("공성미니언", 7, 10, 25, 35) }
+            { 0, new Monster("미니언", 2, 5, 15, 2) },
+            { 1, new Monster("대포미니언", 5, 8, 25, 5) },
+            { 2, new Monster("공허충", 3, 9, 10, 3) },
+            { 3, new Monster("공성미니언", 7, 10, 25, 7) }
         };
 
         //스테이지 리스트
@@ -236,6 +236,12 @@ namespace Text_RPG_Chill
         {
             new List<int> { 0, 1, 2 },
             new List<int> { 0, 1, 3 }
+        };
+
+        static Dictionary<int, (int Gold, Item? RewardItem)> stageReward = new Dictionary<int, (int, Item?)>
+        {
+            {0, (100, null) },
+            {1, (300, ItemList?[0]) },
         };
 
         static List<Item> ItemList = new List<Item>
@@ -324,7 +330,7 @@ namespace Text_RPG_Chill
             player.Gold = choiceJob.StartGold;
             player.Job = choiceJob.Name; // 버그픽스 : player.Job = choiceJob으로 실행하면 상태창에서 직업이 아닌 Pogram.Job이 출력 되어 player 클래스의 Job을 string으로 변환하여 Job.Name 할당
             player.PlayerEXP = 0;
-            player.RequireEXP = 50;
+            player.RequireEXP = 10;
         }
 
         //메인메뉴 메서드 -- 인벤토리 / 퀘스트 선택사항 추가
@@ -842,13 +848,20 @@ namespace Text_RPG_Chill
             Console.WriteLine();
             if (!combatStage[stageNum].Any(mon => !mon.IsDead))
             {
+                int rewardItem = random.Next(101);
                 int totalExp = combatStage[stageNum].Sum(mon => ((Monster)mon).GiveExp);
                 player.AddEXP(totalExp);
+                player.Gold += stageReward[stageNum].Gold;
+                //if (rewardItem > 95)
+                //{
+                //    getItem(stageReward[stageNum].RewardItem);
+                //}
 
                 Console.WriteLine("Victory");
                 Console.WriteLine();
                 Console.WriteLine($"던전에서 몬스터 {stage[stageNum].Count}마리를 잡았습니다.");
                 Console.WriteLine($"획득 경험치 : {totalExp}");
+                Console.WriteLine($"획득 골드 : {stageReward[stageNum].Gold}");
                 Console.WriteLine();
                 Console.WriteLine($"Lv.{player.Level} {player.Name}");
                 Console.WriteLine($"HP {player.MaxHP} -> {player.HP}");
