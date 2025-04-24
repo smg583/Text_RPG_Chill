@@ -589,12 +589,11 @@ namespace Text_RPG_Chill
 
                 if (skillInfo != 99 && SkillList[skillInfo].IsRandomTarget)
                 {
-                    List<int> randomTargetList = new List<int>();
-                    for (int i = 0; i < SkillList[skillInfo].HitChance; i++)
-                    {
-                        int x = random.Next(choicesList.Count);
-                        randomTargetList.Add(choicesList[x] - 1);
-                    }
+                    List<int> randomTargetList = choicesList
+                        .OrderBy(x => random.Next())
+                        .Take(SkillList[skillInfo].HitChance)
+                        .Select(x => x - 1)
+                        .ToList();
                     Battle(stageNum, randomTargetList, skillInfo);
                     break;
                 }
@@ -647,6 +646,11 @@ namespace Text_RPG_Chill
 
                 hitCount = SkillList[skillInfo].HitChance;
 
+            }
+
+            if (choiceMonster.Count < hitCount)
+            {
+                hitCount = choiceMonster.Count;
             }
 
             for (int i = 0; i < hitCount; i++)
