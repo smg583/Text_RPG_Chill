@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+﻿using System.Net.Http.Headers;
 using System.Reflection.Emit;
 using System.Xml.Linq;
 
@@ -11,10 +11,12 @@ namespace TextRPG_Team_ver
         {
             public string Name { get; set; }
             public int Level { get; set; }
-            public int Att { get; set; }
-            public int Dfn { get; set; }
+            public float Att { get; set; }
+            public float Dfn { get; set; }
             public int HP { get; set; }
             public int MaxHP { get; set; }
+            public int MP { get; set; }
+            public int MaxMP { get; set; }
             public bool IsDead => HP <= 0;
         }
         //임시 플레이어 클래스
@@ -22,19 +24,58 @@ namespace TextRPG_Team_ver
         {
             public string Job { get; set; }
             public int Gold { get; set; }
-            public float PlayerEXP { get; set; }
+            private int playerEXP { get; set; }
+            public int RequireEXP { get; set; }
+
+            public int PlayerEXP
+            {
+                get => playerEXP;
+                set => playerEXP = value;
+            }
+
+            public void AddEXP(int amount)
+            {
+                playerEXP += amount;
+                CheckLevelUp(); // setter 호출 없이 직접 처리
+            }
+
+            public void CheckLevelUp()
+            {
+                while (playerEXP >= RequireEXP)
+                {
+                    playerEXP -= RequireEXP;
+                    Level++;
+                    Att += 1;
+                    Dfn += 0.5f;
+                    HP = MaxHP;
+                    MP = MaxMP;
+                    RequireEXP = (int)(RequireEXP * 1.2f);
+
+                    Console.WriteLine($"{Name}이(가) 레벨업 했습니다! 현재 레벨: {Level}");
+                }
+            }
         }
+
+
 
         //몬스터 클래스
         class Monster : Unit
         {
+            public int GiveExp { get; set; }
+            
             //몬스터 생성
-            public Monster(string mosterName, int monsterLV, int monsterAtt, int monsterHP)
+            public Monster(string mosterName, int monsterLV, float monsterAtt, int monsterHP, int giveExp)
             {
                 Name = mosterName;
                 Level = monsterLV;
                 Att = monsterAtt;
                 HP = monsterHP;
+                GiveExp = giveExp;
+            }
+
+            public Monster Clone()
+            {
+                return new Monster(this.Name, this.Level, this.Att, this.HP, this.GiveExp);
             }
         }
 
@@ -46,19 +87,22 @@ namespace TextRPG_Team_ver
             public int Att { get; set; }
             public int Dfn { get; set; }
             public int MaxHP { get; set; }
+            public int MaxMP { get; set; }
             public int StartGold { get; set; }
 
-            public Job(string name, int level, int att, int dfn, int hp, int startGold)
+            public Job(string name, int level, int att, int dfn, int hp, int mp, int startGold)
             {
                 Name = name;
                 Level = level;
                 Att = att;
                 Dfn = dfn;
                 MaxHP = hp;
+                MaxMP = mp;
                 StartGold = startGold;
             }
         }
 
+        //아이템 클래스
         class Item
         {
             public int Price { get; set; }
@@ -66,11 +110,12 @@ namespace TextRPG_Team_ver
             public string ItemToolTip { get; set; }
         }
 
+        //아이템 - 무기
         class Weapon : Item
         {
-            public int WeaponAtt { get; set; }
+            public float WeaponAtt { get; set; }
 
-            public Weapon(string name, string toolTip, int att, int price)
+            public Weapon(string name, string toolTip, float att, int price)
             {
                 ItemName = name;
                 ItemToolTip = toolTip;
@@ -80,11 +125,12 @@ namespace TextRPG_Team_ver
 
         }
 
+        //아이템 - 방어구
         class Armor : Item
         {
-            public int ArmorDfn { get; set; }
+            public float ArmorDfn { get; set; }
 
-            public Armor(string name, string toolTip, int dfn, int price)
+            public Armor(string name, string toolTip, float dfn, int price)
             {
                 ItemName = name;
                 ItemToolTip = toolTip;
@@ -96,10 +142,10 @@ namespace TextRPG_Team_ver
         //방패 아이템 타입 추가
         class Shield : Item
         {
-            public int ShieldDfn { get; set; }
-            public int ShieldAtt { get; set; }
+            public float ShieldDfn { get; set; }
+            public float ShieldAtt { get; set; }
 
-            public Shield(string name, string toolTip, int att, int dfn, int price)
+            public Shield(string name, string toolTip, float att, float dfn, int price)
             {
                 ItemName = name;
                 ItemToolTip = toolTip;
@@ -109,6 +155,41 @@ namespace TextRPG_Team_ver
             }
         }
 
+        class Potion : Item
+        {
+            public int Heal { get; set; }
+            public Potion(string name, string toolTip, int heal, int price)
+            {
+                ItemName = name;
+                ItemToolTip = toolTip;
+                Heal = heal;
+                Price = price;
+            }
+        }
+
+        //스킬 클래스
+        class Skill
+        {
+            public string Name { get; set; }
+            public string ToolTip { get; set; }
+            public float DamageRate { get; set; }
+            public int HitChance { get; set; }
+            public int MPCost { get; set; }
+            public bool IsRandomTarget { get; set; }
+
+
+            public Skill(string name, string toolTip, float damageRate, int hitChance, int mPCost, bool isRandomTarget)
+            {
+                Name = name;
+                ToolTip = toolTip;
+                DamageRate = damageRate;
+                HitChance = hitChance;
+                MPCost = mPCost;
+                IsRandomTarget = isRandomTarget;
+            }
+        }
+
+        //퀘스트 클래스
         class Quest
         {
             public string Name { get; set; }
@@ -119,11 +200,11 @@ namespace TextRPG_Team_ver
             public int GoldReward { get; set; } // 골드 보상
             public bool isClear { get; set; } = false; // 퀘스트 클리어 여부
             public bool isAccept { get; set; } = false; // 퀘스트 수락 여부
-            public bool isGetReward {  get; set; } = false; // 보상 획득 여부 
+            public bool isGetReward { get; set; } = false; // 보상 획득 여부 
 
             public Quest() { }
 
-            public Quest(string questName, string questInfo, string questCondition,int completeNum, int conditionNum, int goldReward)
+            public Quest(string questName, string questInfo, string questCondition, int completeNum, int conditionNum, int goldReward)
             {
                 Name = questName;
                 Info = questInfo;
@@ -137,40 +218,36 @@ namespace TextRPG_Team_ver
         //직업 리스트 -- 25/04/22 도적 및 팔라딘 추가 완료
         static List<Job> JobList = new List<Job>
         {
-            new Job("전사", 1, 10, 5, 100, 1500),
-            new Job("도적", 1, 12, 3, 100, 1500),
-            new Job("팔라딘", 1, 5, 10, 100, 1500)
+            new Job("전사", 1, 10, 5, 100, 50, 1500),
+            new Job("도적", 1, 12, 3, 100, 50, 1500),
+            new Job("팔라딘", 1, 5, 10, 100, 50, 1500)
         };
 
         //스테이지 별 몬스터 리스트
-        static List<Monster> monsters1 = new List<Monster>
+        static Dictionary<int, Monster> monsters = new Dictionary<int, Monster>
         {
-            new Monster("미니언", 2, 5, 15),
-            new Monster("대포미니언", 5, 8, 25),
-            new Monster("공허충", 3, 9, 10)
-        };
-
-        static List<Monster> monsters2 = new List<Monster>
-        {
-            new Monster("미니언1", 2, 5, 15),
-            new Monster("대포미니언1", 5, 8, 25),
-            new Monster("공허충1", 3, 9, 10),
-            new Monster("공성미니언", 7, 10, 25)
+            { 0, new Monster("미니언", 2, 5, 15, 10) },
+            { 1, new Monster("대포미니언", 5, 8, 25, 25) },
+            { 2, new Monster("공허충", 3, 9, 10, 15) },
+            { 3, new Monster("공성미니언", 7, 10, 25, 35) }
         };
 
         //스테이지 리스트
-        static List<List<Monster>> stage = new List<List<Monster>>
+        static List<List<int>> stage = new List<List<int>>
         {
-            monsters1,
-            monsters2
+            new List<int> { 0, 0, 0 },
+            new List<int> { 0, 1, 2 },
+            new List<int> { 0, 1, 3 }
         };
 
-        static List<Item> inventory = new List<Item>
+        static List<Item> ItemList = new List<Item>
         {
-            new Weapon("나무검", "공격력+5 | 무기 | 근방에 자란 나무로 만든 무기 불에 금방 탈 것 같다.", 5, 1000),
-            new Weapon("철 야구방망이", "공격력+50 | 무기 | 묘하게 세계관과 동떨어진 무기 그만큼 화력이 강해보인다.", 50, 25000),
-            new Armor("나무 방패", "방어력+5 | 방어구 | 근방에서 자란 나무로 만든 방패 불에 약해보인다.", 5, 1000),
-            new Armor("무쇠갑옷", "방어력+10 | 방어구 | 마을에서 조금 멀리 떨어진 곳에서 만든 갑옷 단단해보인다.", 10, 2000)
+            new Weapon("나무검", "공격력+5 | 무기 | 근방에 자란 나무로 만든 무기 불에 금방 탈 것 같다.", 5, 100),
+            new Weapon("철 야구방망이", "공격력+50 | 무기 | 묘하게 세계관과 동떨어진 무기 그만큼 화력이 강해보인다.", 50, 500),
+            new Armor("나무 방패", "방어력+5 | 방어구 | 근방에서 자란 나무로 만든 방패 불에 약해보인다.", 5, 80),
+            new Armor("무쇠갑옷", "방어력+10 | 방어구 | 마을에서 조금 멀리 떨어진 곳에서 만든 갑옷 단단해보인다.", 10, 200),
+            new Potion("빨간 포션", "체력+30 | 포션 | 유리병에 담긴 새빨간 포션.", 30, 30),
+            new Potion("파란 포션", "체력+50 | 포션 | 유리병에 담긴 파란 포션.", 50, 50)
         };
 
         //퀘스트 리스트 - 퀘스트 이름, 내용, 달성 조건, 보상 순
@@ -181,7 +258,7 @@ namespace TextRPG_Team_ver
             new Quest("장비를 장착해보자", "던전 속 몬스터가 점점 강해지고 있다.\n이러다가는 내가 당하고 말거야..\n인벤토리 속 보유하고 있는 장비를 장착하여 강해진 몬스터들과 맞서보자!",
                 "장비를 장착해보기", 0,  1, 100),
             new Quest("더욱 더 강해지기!", "몬스터를 처치하면 처치할 수록 강해지는 느낌이 든다..\n계속 강해지다 보면 용사의 검을 들어 올리지도..?",
-                "LV.5 달성하기", 1, 5, 500)
+                "LV.10 달성하기", 1, 10, 500)
         };
 
         //퀘스트 보상 아이템 리스트
@@ -192,8 +269,18 @@ namespace TextRPG_Team_ver
             new Weapon("용사의 검","공격력 +20 | 마을의 동굴 최심부에 꽂혀있던 검. 용사의 검을 뽑은 자는 마왕을 물리칠 수 있는 힘을 얻게된다.", 20, 2000)
         };
 
+        static List<Skill> SkillList = new List<Skill>
+        {
+            new Skill("알파 스트라이크", "공격력 * 2 로 하나의 적을 공격합니다.", 2.0f, 1, 10, false),
+            new Skill("더블 스트라이크", "공격력 * 1.5 로 2명의 적을 랜덤으로 공겨합니다.", 1.5f, 2, 15, true)
+        };
+
+        static List<List<Monster>> combatStage = new List<List<Monster>>();
+
+
         //플레이어 객체 생성
         static Player player;
+        static Random random = new Random();
 
 
 
@@ -234,9 +321,12 @@ namespace TextRPG_Team_ver
             player.Dfn = choiceJob.Dfn;
             player.MaxHP = choiceJob.MaxHP;
             player.HP = choiceJob.MaxHP;
+            player.MaxMP = choiceJob.MaxMP;
+            player.MP = choiceJob.MaxMP;
             player.Gold = choiceJob.StartGold;
             player.Job = choiceJob.Name; // 버그픽스 : player.Job = choiceJob으로 실행하면 상태창에서 직업이 아닌 Pogram.Job이 출력 되어 player 클래스의 Job을 string으로 변환하여 Job.Name 할당
             player.PlayerEXP = 0;
+            player.RequireEXP = 50;
         }
 
         //메인메뉴 메서드 -- 인벤토리 / 퀘스트 선택사항 추가
@@ -245,6 +335,8 @@ namespace TextRPG_Team_ver
             // 반복문으로 돌려  다른 메서드로 이동해도 메인은 계속 실행 되게함 -> 다른 메서드에서 메인메뉴로 돌아올 때 MainMenu()를 호출 하지 않고 return으로 돌아옴 -> 재귀호출을 계속하는 것을 방지
             while (true)
             {
+                QuestClearAlarm();
+
                 int[] choices = { 0, 1, 2, 3, 4 };
 
                 Console.WriteLine("메인메뉴");
@@ -266,7 +358,6 @@ namespace TextRPG_Team_ver
                     case 0:
                         Console.WriteLine("게임을 종료합니다");
                         return;
-
                     case 1:
                         StatusScreen();
                         break;
@@ -287,15 +378,17 @@ namespace TextRPG_Team_ver
         {
             int[] choicese = { 0 };
 
-            Console.WriteLine("1. 상태 보기");
+            Console.WriteLine("[상태 보기]");
             Console.WriteLine("캐릭터의 정보가 표시됩니다.");
             Console.WriteLine();
             Console.WriteLine($"LV. {player.Level:D2}");
             Console.WriteLine($"이름 : {player.Name}  ( {player.Job} )");
             Console.WriteLine($"공격력 : {player.Att}");
             Console.WriteLine($"방어력 : {player.Dfn}");
-            Console.WriteLine($"체력 : {player.HP}/{player.MaxHP}");
+            Console.WriteLine($"HP : {player.HP}/{player.MaxHP}");
+            Console.WriteLine($"MP : {player.MP}/{player.MaxMP}");
             Console.WriteLine($"Gold : {player.Gold} G");
+            Console.WriteLine($"EXP : {player.PlayerEXP}/{player.RequireEXP}");
             Console.WriteLine();
             Console.WriteLine("0. 나가기");
 
@@ -316,6 +409,8 @@ namespace TextRPG_Team_ver
             Console.WriteLine("보유 중인 아이템을 관리합니다.");
             Console.WriteLine();
             Console.WriteLine("[ 아이템 목록 ]");
+            foreach (var item in ItemList)
+                Console.WriteLine($"- {item.ItemName}: {item.ItemToolTip}");
             Console.WriteLine();
             Console.WriteLine(" 원하시는 행동을 입력해주세요.");
             Console.WriteLine("1. 장착 관리");
@@ -335,12 +430,54 @@ namespace TextRPG_Team_ver
 
         static void Equip()
         {
+            Console.Clear();
+            Console.WriteLine("[ 장착 관리 ]\n 보유 중인 아이템을 장착합니다.\n");
+            Console.WriteLine();
 
+            foreach (var item in ItemList)
+            {
+                if (item is Weapon weapon)
+                {
+                    player.Att += weapon.WeaponAtt;
+                    //Console.WriteLine("{E}"); - 장착시 표현 구현 필요
+                    Console.WriteLine($"{weapon.ItemName} 장착으로 공격력 +{weapon.WeaponAtt}");
+                }
+                else if (item is Armor armor)
+                {
+                    player.Dfn += armor.ArmorDfn;
+                    //Console.WriteLine("{E}"); - 장착시 표현 구현 필요
+                    Console.WriteLine($"{armor.ItemName} 장착으로 방어력 +{armor.ArmorDfn}");
+                }
+            }
         }
 
         static void DungeonSelect()
         {
+            while (true)
+            {
+                
+                int[] choices = Enumerable.Range(1, stage.Count).Append(0).ToArray();
+                int i;
+                Console.WriteLine("[던전]");
+                Console.WriteLine("입장할 던전을 선택해주세요.");
+                Console.WriteLine();
+                for (i = 0; i < stage.Count; i++)
+                {
+                    Console.WriteLine($"{i + 1}. {i + 1}층");
+                }
+                Console.WriteLine($"0. 취소");
+                int choice = Input(choices);
 
+                switch (choice)
+                {
+                    case 0:
+                        return;
+                    default:
+                        combatStage = stage.Select(list => list.Select(id => monsters[id].Clone()).ToList()).ToList();
+                        Encounter(choice - 1);
+                        break;
+                }
+            }
         }
 
         //던전 메서드
@@ -348,50 +485,108 @@ namespace TextRPG_Team_ver
         //공격하면 전투 메서드 실행
         static void Encounter(int stageNum)
         {
-            int[] choices = { 0, 1 };
+            int[] choices = { 0, 1, 2 };
+
+            while (true)
+            {
+                if (!combatStage[stageNum].Any(mon => !mon.IsDead) || player.HP <= 0)
+                {
+                    BattleResult(stageNum);
+                    return;
+                }
+
+                Console.WriteLine($"Battle!!");
+                Console.WriteLine();
+                for (int i = 0; i < combatStage[stageNum].Count; i++)
+                {
+                    Unit monster = combatStage[stageNum][i];
+                    Console.WriteLine($"LV. {monster.Level} {monster.Name} HP {(monster.IsDead ? "Dead" : monster.HP)}");
+                }
+                Console.WriteLine();
+                Console.WriteLine("[내정보]");
+                Console.WriteLine($"LV.{player.Level} {player.Name} ({player.Job})");
+                Console.WriteLine($"HP {player.HP}/{player.MaxHP}");
+                Console.WriteLine($"MP {player.MP}/{player.MaxMP}");
+                Console.WriteLine();
+                Console.WriteLine("1. 공격");
+                Console.WriteLine("2. 스킬");
+                Console.WriteLine("0. 도망가기");
+                Console.WriteLine();
+                int choice = Input(choices);
+
+                switch (choice)
+                {
+                    case 0:
+                        Console.WriteLine("도망쳤습니다.");
+                        return;
+                    case 1:
+                        SelectMonster(stageNum, 99);
+                        break;
+                    case 2:
+                        SkillMenu(stageNum);
+                        break;
+                }
+            }
+        }
+
+        static void SkillMenu(int stageNum)
+        {
+            List<int> choicesList = new List<int>();
+            int index = 1;
+
+            foreach (Skill skill in SkillList)
+            {
+                if (player.MP >= skill.MPCost)
+                {
+                    choicesList.Add(index);
+                }
+                index++;
+            }
+
+            // 스킬의 번호만 choicesList에  추가되어 0을 누르면 뒤로가기가 안되어 0을 직접 추가 하였습니다.
+            choicesList.Add(0);
+
+            int[] choices = choicesList.ToArray();
 
             Console.WriteLine($"Battle!!");
             Console.WriteLine();
-
-            //스테이지[넘버]의 수만큼 반복
             for (int i = 0; i < stage[stageNum].Count; i++)
             {
-                //스테이지[넘버]의 요소를 monster로 저장 및 출력
-                var monster = stage[stageNum][i];
+                Unit monster = combatStage[stageNum][i];
                 Console.WriteLine($"LV. {monster.Level} {monster.Name} HP {(monster.IsDead ? "Dead" : monster.HP)}");
             }
             Console.WriteLine();
             Console.WriteLine("[내정보]");
-            Console.WriteLine($"LV.{player.Level} {player.Name} ({player.Name})");
+            Console.WriteLine($"LV.{player.Level} {player.Name} ({player.Job})");
             Console.WriteLine($"HP {player.HP}/{player.MaxHP}");
+            Console.WriteLine($"MP {player.MP}/{player.MaxMP}");
             Console.WriteLine();
-            Console.WriteLine("1. 공격");
-            Console.WriteLine("0. 도망가기");
-            Console.WriteLine();
-            int choice = Input(choices);
 
-            switch (choice)
+            for (int i = 0; i < SkillList.Count; i++)
             {
-                case 0:
-                    Console.WriteLine("도망쳤습니다.");
-                    break;
-                case 1:
-                    CombatMenu(stageNum);
-                    break;
+                Console.WriteLine($"{i + 1} {SkillList[i].Name} - MP {SkillList[i].MPCost}");
+                Console.WriteLine($"{SkillList[i].ToolTip}");
             }
+            Console.WriteLine("0. 취소");
+
+            int choice = Input(choices);
+            if (choice == 0)
+            {
+                return;
+            }
+            SelectMonster(stageNum, choice - 1);
         }
 
         //전투 메서드
-        static void CombatMenu(int stageNum)
+        //스킬 99는 기본 공격
+        static void SelectMonster(int stageNum, int skillInfo)
         {
-            int monsterCount = stage[stageNum].Count;
-            while (player.HP > 0 && monsterCount > 0)
+            while (player.HP > 0 && combatStage[stageNum].Any(mon => !mon.IsDead))
             {
-                //살아있는 몬스터만 선택지로 나타내기 위한 리스트 셋업
                 List<int> choicesList = new List<int>();
                 int index = 1;
 
-                foreach (Unit monster in stage[stageNum])
+                foreach (Unit monster in combatStage[stageNum])
                 {
                     if (!monster.IsDead)
                     {
@@ -400,81 +595,161 @@ namespace TextRPG_Team_ver
                     index++;
                 }
 
-                //위의 셋업으로 선택지 생성
+                if (skillInfo != 99 && SkillList[skillInfo].IsRandomTarget)
+                {
+                    List<int> randomTargetList = new List<int>();
+                    for (int i = 0; i < SkillList[skillInfo].HitChance; i++)
+                    {
+                        int x = random.Next(choicesList.Count);
+                        randomTargetList.Add(choicesList[x] - 1);
+                    }
+                    Battle(stageNum, randomTargetList, skillInfo);
+                    break;
+                }
+
+                choicesList.Add(0);
                 int[] choices = choicesList.ToArray();
 
                 Console.WriteLine($"Battle!!");
                 Console.WriteLine();
-                for (int i = 0; i < stage[stageNum].Count; i++)
+                int y = 1;
+                foreach (Unit monster in combatStage[stageNum])
                 {
-                    Unit monster = stage[stageNum][i];
-                    Console.WriteLine($"[{i + 1}] LV. {monster.Level} {monster.Name} HP {(monster.IsDead ? "Dead" : monster.HP)}");
+                    Console.WriteLine($"[{y}] LV. {monster.Level} {monster.Name} HP {(monster.IsDead ? "Dead" : monster.HP)}");
+                    y++;
                 }
                 Console.WriteLine();
                 Console.WriteLine("[내정보]");
                 Console.WriteLine($"LV.{player.Level} {player.Name} ({player.Job})");
                 Console.WriteLine($"HP {player.HP}/{player.MaxHP}");
+                Console.WriteLine($"MP {player.MP}/{player.MaxMP}");
                 Console.WriteLine();
+                Console.WriteLine("0. 취소");
 
                 int choice = Input(choices);
-                Battle(stageNum, choice - 1, ref monsterCount);
-            }
-            BattleResult(stageNum, monsterCount);
-        }
+                int targetMonster = choice - 1;
 
-        static void Battle(int stageNum, int choiceMonster, ref int monsterCount)
-        {
-            Damage(player, stage[stageNum][choiceMonster]);
-
-            if (stage[stageNum][choiceMonster].HP <= 0)
-            {
-                monsterCount--;
-            }
-
-            foreach (Unit monster in stage[stageNum])
-            {
-                if (!monster.IsDead)
+                List<int> targetList = new List<int>
                 {
-                    Damage(monster, player);
+                    targetMonster
+                };
+
+                if (choice == 0)
+                {
+                    return;
+                }
+                else
+                {
+                    Battle(stageNum, targetList, skillInfo);
+                    break;
                 }
             }
         }
 
-        //데미지 메서드
-        //공격자와 피격자를 매개변수로 받아
-        //플레이어 몬스터 상관없이 적용
-        static void Damage(Unit attacker, Unit target)
+        static void Battle(int stageNum, List<int> choiceMonster, int skillInfo)
+        {
+            int hitCount = 1;
+            if (skillInfo != 99)
+            {
+                player.MP -= SkillList[skillInfo].MPCost;
+
+                hitCount = SkillList[skillInfo].HitChance;
+
+            }
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                int targetIndex = choiceMonster[i];
+                Damage(player, combatStage[stageNum][targetIndex], skillInfo);
+            }
+
+            foreach (Unit monster in combatStage[stageNum])
+            {
+                if (!monster.IsDead)
+                {
+                    Damage(monster, player, 99);
+                }
+            }
+            if (player.MP < player.MaxMP)
+            {
+                player.MP += 10;
+                if (player.MP >= player.MaxMP)
+                {
+                    player.MP = player.MaxMP;
+                }
+            }
+        }
+
+        static void Damage(Unit attacker, Unit target, int skillInfo)
         {
             int[] choices = { 0 };
-            Random random = new Random();
             //데미지 오차 10%
-            int damageRate = (int)Math.Round(attacker.Att * 0.1);
-            int damage = random.Next(attacker.Att - damageRate, attacker.Att + damageRate);
+            int damageRate = (int)Math.Round(attacker.Att * 0.1f);
+            int damage = random.Next((int)attacker.Att - damageRate, (int)attacker.Att + damageRate);
             int prevHP = target.HP;
-            target.HP -= damage;
+            float skillRate;
+            if (skillInfo == 99)
+            {
+                skillRate = 1f;
+            }
+            else
+            {
+                skillRate = SkillList[skillInfo].DamageRate;
+            }
+            int totalDamage = (int)Math.Round(damage * skillRate);
+
+            int damageChance = random.Next(0, 101);
 
             Console.WriteLine("Battle!!");
             Console.WriteLine();
             Console.WriteLine($"{attacker.Name} 의 공격!");
-            Console.WriteLine($"{target.Name} 을(를) 맞췄습니다. [데미지 : {damage}]");
+
+            if (damageChance < 15)
+            {
+                totalDamage = totalDamage + (int)Math.Round(totalDamage * 1.6f);
+                target.HP -= totalDamage;
+                Console.WriteLine($"{target.Name} 을(를) 맞췄습니다. [데미지 : {totalDamage}] - 치명타 공격!!");
+
+            }
+            else if (damageChance < 25)
+            {
+                Console.WriteLine($"{target.Name} 을(를) 공격했지만 아무일도 일어나지 않았습니다.");
+            }
+            else
+            {
+                target.HP -= totalDamage;
+                Console.WriteLine($"{target.Name} 을(를) 맞췄습니다. [데미지 : {totalDamage}]");
+            }
             Console.WriteLine();
             Console.WriteLine($"Lv.{target.Level} {target.Name}");
-            Console.WriteLine($"HP {prevHP} -> {target.HP}");
+            Console.WriteLine($"HP {prevHP} -> {(target.IsDead ? "Dead" : target.HP)}");
+            
+            // 퀘스트가 수락됐고 미니언이 죽을 경우 진행도 카운트 증가
+            if (questsList[0].isAccept && prevHP > 0 && target.IsDead && target.Name == "미니언" && questsList[0].isClear == false)
+            {
+                questsList[0].CompleteNum ++;
+            }
+
+            
             Console.WriteLine();
             Console.WriteLine("0. 다음");
             int choice = Input(choices);
         }
 
-        static void BattleResult(int stageNum, int monsterCount)
+        static void BattleResult(int stageNum)
         {
             int[] choices = { 0 };
             Console.WriteLine("Battle!! - Result");
             Console.WriteLine();
-            if (monsterCount <= 0)
+            if (!combatStage[stageNum].Any(mon => !mon.IsDead))
             {
+                int totalExp = combatStage[stageNum].Sum(mon => ((Monster)mon).GiveExp);
+                player.AddEXP(totalExp);
+
                 Console.WriteLine("Victory");
                 Console.WriteLine();
-                Console.WriteLine($"던전에서 몬스터 {stage[stageNum]}마리를 잡았습니다.");
+                Console.WriteLine($"던전에서 몬스터 {stage[stageNum].Count}마리를 잡았습니다.");
+                Console.WriteLine($"획득 경험치 : {totalExp}");
                 Console.WriteLine();
                 Console.WriteLine($"Lv.{player.Level} {player.Name}");
                 Console.WriteLine($"HP {player.MaxHP} -> {player.HP}");
@@ -486,17 +761,24 @@ namespace TextRPG_Team_ver
                 Console.WriteLine("You Lose");
                 Console.WriteLine();
                 Console.WriteLine($"Lv.{player.Level} {player.Name}");
-                Console.WriteLine($"HP {player.MaxHP} -> 0");
+                Console.WriteLine($"HP {player.HP} -> 0");
                 Console.WriteLine();
                 Console.WriteLine("0. 다음");
             }
+
+            // 3변째 퀘스트가 수락 되면 실행 questsList[2].isClear == false는 나중에 클리어가 되고 나서도 계속 실행되는 것을 방지
+            if (questsList[2].isAccept && questsList[2].isClear == false)
+            {
+                questsList[2].CompleteNum = player.Level;
+            }
+
             int choice = Input(choices);
 
             switch (choice)
             {
                 case 0:
-                    DungeonSelect();
-                    break;
+                    combatStage = stage.Select(list => list.Select(id => monsters[id].Clone()).ToList()).ToList(); // 던전 선택 전 초기화
+                    return;
             }
         }
 
@@ -509,20 +791,20 @@ namespace TextRPG_Team_ver
                 int num = 1;
 
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("QUEST!!\n");
+                Console.WriteLine("[QUEST]\n");
                 Console.ResetColor();
                 Console.WriteLine("다양한 보상을 얻을 수 있는 퀘스트입니다.\n");
 
-
                 foreach (Quest quest in questsList)
                 {
-                    if (quest.isAccept)
-                    {
-                        Console.WriteLine(num++ + ". " + quest.Name + " [진행중]");
-                    }
-                    else if (quest.isClear)
+                    
+                    if (quest.isClear)
                     {
                         Console.WriteLine(num++ + ". " + quest.Name + " [완료]");
+                    }
+                    else if(quest.isAccept)
+                    {
+                        Console.WriteLine(num++ + ". " + quest.Name + " [진행중]");
                     }
                     else
                     {
@@ -558,7 +840,6 @@ namespace TextRPG_Team_ver
 
         }
 
-
         static void QuestAcceptScreen(Quest quest, Item rewardItem)
         {
 
@@ -590,13 +871,13 @@ namespace TextRPG_Team_ver
             Console.WriteLine($"{rewardItem.ItemName}\n{quest.GoldReward} G\n");
 
             //퀘스트 미진행, 진행, 완료 및 보상 획득 여부에 따른 선텍지 변경 및 선택 번호를 리스트의 삽입           
-            
-            if(quest.isClear && quest.isGetReward == false)
+
+            if (quest.isClear && quest.isGetReward == false)
             {
                 Console.WriteLine("1. 보상받기\n0. 돌아가기");
                 choicesList.Add(0);
                 choicesList.Add(1);
-            }            
+            }
             else if (quest.isAccept || quest.isClear)
             {
                 Console.WriteLine("0. 돌아가기");
@@ -620,29 +901,53 @@ namespace TextRPG_Team_ver
                 case 0:
                     return;
                 case 1:
-                    if(quest.isClear && quest.isGetReward == false)
+                    if (quest.isClear && quest.isGetReward == false)
                     {
                         quest.isGetReward = true;
                         Console.WriteLine("보상을 획득하였습니다!");
-                        inventory.Add(rewardItem);
                         player.Gold += quest.GoldReward;
+                        ItemList.Add(rewardItem);
                     }
                     else
                     {
                         quest.isAccept = true;
-                        Console.WriteLine("퀘스트를 수락하였습니다.");                        
+                        Console.WriteLine("퀘스트를 수락하였습니다.");
                     }
                     Thread.Sleep(1000);
-                    Console.Clear();                   
+                    Console.Clear();
                     return;
                 case 2:
                     Console.WriteLine("퀘스트를 거절하였습니다.");
                     Thread.Sleep(1000);
-                    Console.Clear();   
+                    Console.Clear();
                     return;
             }
 
 
+        }
+
+        //퀘스트 클리어 및 보상 수령을 하지 않을 경우 나오는 알리미
+        static void QuestClearAlarm()
+        {
+            int questnum = 1;
+            bool wrote = false; // 콘솔이 출력이 되었는가 확인하는 변수
+
+            foreach(Quest quest in questsList)
+            {
+                if(quest.CompleteNum >= quest.ConditionNum && quest.isGetReward == false)
+                {
+                    quest.isClear = true;
+                    Console.WriteLine($"{questnum}번째 퀘스트가 완료되었습니다! 보상을 수령하세요!");
+                    wrote = true;
+                }
+                questnum++;
+            }
+            if (wrote)
+            {
+                Thread.Sleep(1000);
+                Console.Clear();
+            }
+            
         }
 
         //인풋 확인 시스템
