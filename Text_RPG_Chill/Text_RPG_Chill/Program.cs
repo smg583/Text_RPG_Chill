@@ -56,7 +56,7 @@ namespace Text_RPG_Chill
             }
         }
 
-    
+
 
         //몬스터 클래스
         class Monster : Unit
@@ -333,6 +333,8 @@ namespace Text_RPG_Chill
             // 반복문으로 돌려  다른 메서드로 이동해도 메인은 계속 실행 되게함 -> 다른 메서드에서 메인메뉴로 돌아올 때 MainMenu()를 호출 하지 않고 return으로 돌아옴 -> 재귀호출을 계속하는 것을 방지
             while (true)
             {
+                QuestClearAlarm();
+
                 int[] choices = { 0, 1, 2, 3, 4 };
 
                 Console.WriteLine("메인메뉴");
@@ -538,6 +540,9 @@ namespace Text_RPG_Chill
                 index++;
             }
 
+            // 스킬의 번호만 choicesList에  추가되어 0을 누르면 뒤로가기가 안되어 0을 직접 추가 하였습니다.
+            choicesList.Add(0);
+
             int[] choices = choicesList.ToArray();
 
             Console.WriteLine($"Battle!!");
@@ -716,6 +721,12 @@ namespace Text_RPG_Chill
                 target.HP -= totalDamage;
                 Console.WriteLine($"{target.Name} 을(를) 맞췄습니다. [데미지 : {totalDamage}]");
             }
+
+            // 퀘스트가 수락됐고 미니언이 죽을 경우 진행도 카운트 증가
+            if (questsList[0].isAccept && prevHP > 0 && target.IsDead && target.Name == "미니언" && questsList[0].isClear == false)
+            {
+                questsList[0].CompleteNum++;
+            }
             Console.WriteLine();
             Console.WriteLine($"Lv.{target.Level} {target.Name}");
             Console.WriteLine($"HP {prevHP} -> {(target.IsDead ? "Dead" : target.HP)}");
@@ -753,6 +764,13 @@ namespace Text_RPG_Chill
                 Console.WriteLine();
                 Console.WriteLine("0. 다음");
             }
+
+            // 3변째 퀘스트가 수락 되면 실행 questsList[2].isClear == false는 나중에 클리어가 되고 나서도 계속 실행되는 것을 방지
+            if (questsList[2].isAccept && questsList[2].isClear == false)
+            {
+                questsList[2].CompleteNum = player.Level;
+            }
+
             int choice = Input(choices);
 
             switch (choice)
@@ -778,13 +796,14 @@ namespace Text_RPG_Chill
 
                 foreach (Quest quest in questsList)
                 {
-                    if (quest.isAccept)
-                    {
-                        Console.WriteLine(num++ + ". " + quest.Name + " [진행중]");
-                    }
-                    else if (quest.isClear)
+
+                    if (quest.isClear)
                     {
                         Console.WriteLine(num++ + ". " + quest.Name + " [완료]");
+                    }
+                    else if (quest.isAccept)
+                    {
+                        Console.WriteLine(num++ + ". " + quest.Name + " [진행중]");
                     }
                     else
                     {
@@ -886,6 +905,7 @@ namespace Text_RPG_Chill
                         quest.isGetReward = true;
                         Console.WriteLine("보상을 획득하였습니다!");
                         player.Gold += quest.GoldReward;
+                        ItemList.Add(rewardItem);
                     }
                     else
                     {
@@ -902,6 +922,30 @@ namespace Text_RPG_Chill
                     return;
             }
 
+
+        }
+
+        //퀘스트 클리어 및 보상 수령을 하지 않을 경우 나오는 알리미
+        static void QuestClearAlarm()
+        {
+            int questnum = 1;
+            bool wrote = false; // 콘솔이 출력이 되었는가 확인하는 변수
+
+            foreach (Quest quest in questsList)
+            {
+                if (quest.CompleteNum >= quest.ConditionNum && quest.isGetReward == false)
+                {
+                    quest.isClear = true;
+                    Console.WriteLine($"{questnum}번째 퀘스트가 완료되었습니다! 보상을 수령하세요!");
+                    wrote = true;
+                }
+                questnum++;
+            }
+            if (wrote)
+            {
+                Thread.Sleep(1000);
+                Console.Clear();
+            }
 
         }
 

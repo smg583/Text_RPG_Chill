@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35913.81 d17.13
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Text_RPG_Chill", "Text_RPG_Chill\Text_RPG_Chill.csproj", "{2A813508-94A7-4A8A-835C-D58B96932C17}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Text_RPG_Chill", "Text_RPG_Chill\Text_RPG_Chill.csproj", "{7747B073-3065-4946-B49B-6626E6B2F13E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{2A813508-94A7-4A8A-835C-D58B96932C17}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2A813508-94A7-4A8A-835C-D58B96932C17}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2A813508-94A7-4A8A-835C-D58B96932C17}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2A813508-94A7-4A8A-835C-D58B96932C17}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7747B073-3065-4946-B49B-6626E6B2F13E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7747B073-3065-4946-B49B-6626E6B2F13E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7747B073-3065-4946-B49B-6626E6B2F13E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7747B073-3065-4946-B49B-6626E6B2F13E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {D91A702E-E20F-4B1B-81BB-E8E6DA502D6C}
+		SolutionGuid = {53C54245-9462-4204-BB80-E4D63C00B619}
 	EndGlobalSection
 EndGlobal
