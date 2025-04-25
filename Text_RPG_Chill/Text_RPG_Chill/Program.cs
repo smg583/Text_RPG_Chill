@@ -2,7 +2,7 @@
 using System.Reflection.Emit;
 using System.Xml.Linq;
 
-namespace Text_RPG_Chill
+namespace TextRPG_Team_ver
 {
     internal class Program
     {
@@ -110,6 +110,8 @@ namespace Text_RPG_Chill
             public int Price { get; set; }
             public string ItemName { get; set; }
             public string ItemToolTip { get; set; }
+
+           
         }
 
         //아이템 - 무기
@@ -160,14 +162,17 @@ namespace Text_RPG_Chill
         class Potion : Item
         {
             public int Heal { get; set; }
-            public Potion(string name, string toolTip, int heal, int price)
+            public string potionType;// 포션의 타입을 나누는 변수 체력은 Hp 마나는 Man
+            public Potion(string name, string potionType, string toolTip, int heal, int price)
             {
                 ItemName = name;
                 ItemToolTip = toolTip;
+                this.potionType = potionType;
                 Heal = heal;
                 Price = price;
             }
         }
+        
 
         //스킬 클래스
         class Skill
@@ -254,8 +259,8 @@ namespace Text_RPG_Chill
             new Weapon("철 야구방망이", "공격력+50 | 무기 | 묘하게 세계관과 동떨어진 무기 그만큼 화력이 강해보인다.", 50, 500),
             new Armor("나무 방패", "방어력+5 | 방어구 | 근방에서 자란 나무로 만든 방패 불에 약해보인다.", 5, 80),
             new Armor("무쇠갑옷", "방어력+10 | 방어구 | 마을에서 조금 멀리 떨어진 곳에서 만든 갑옷 단단해보인다.", 10, 200),
-            new Potion("빨간 포션", "체력+30 | 포션 | 유리병에 담긴 새빨간 포션.", 30, 30),
-            new Potion("파란 포션", "체력+50 | 포션 | 유리병에 담긴 파란 포션.", 50, 50)
+            new Potion("빨간 포션","Hp", "체력+30 | 포션 | 유리병에 담긴 새빨간 포션.", 30, 30),
+            new Potion("파란 포션","Mana", "마나 +50 | 포션 | 유리병에 담긴 파란 포션.", 50, 50)
         };
 
         //퀘스트 리스트 - 퀘스트 이름, 내용, 달성 조건, 보상 순
@@ -373,7 +378,12 @@ namespace Text_RPG_Chill
                         Inventory();
                         break;
                     case 3:
-                        DungeonSelect();
+                        // 플레이어 체력 또는 마나가 최대 보다 적을 시 회복화면으로 이동
+                        if(player.HP < player.MaxHP || player.MP < player.MaxMP)
+                        {
+                            HealScreen();
+                        }
+                        else DungeonSelect();
                         break;
                     case 4:
                         QuestsScreen();
@@ -557,7 +567,107 @@ namespace Text_RPG_Chill
                 Console.ReadLine();
             }
         }
-        
+
+        // 체력/마나 회복 메서드
+        static void HealScreen()
+        {
+            while (true)
+            {
+                int[] choices = [0, 1, 2];
+
+                // 아이템 리스트에서 Potion 클래스를 확인하고, 포션 타입이 Hp인지 Mana인지 확인
+                int hpPotionNum = 0;
+                int manaPotionNum = 0;
+                foreach (Item item in ItemList)
+                {
+                    if (item is Potion)
+                    {
+                        Potion potion = (Potion)item;
+
+                        if (potion.potionType == "Hp")
+                        {
+                            hpPotionNum++;
+                        }
+                        else if (potion.potionType == "Mana")
+                        {
+                            manaPotionNum++;
+                        }
+                    }
+                }
+
+                Console.WriteLine("던전에 들어가기 전에 회복을 할 수 있습니다.\n");
+                Console.WriteLine("현재 포션 보유 수량");
+                Console.WriteLine($"체력 포션: {hpPotionNum}개\n마나 포션: {manaPotionNum}개\n");
+
+                Console.WriteLine("사용하실 포션을 선택하세요.");
+                Console.WriteLine("1. 체력 포션\n2. 마나 포션\n0. 건너뛰기\n");
+
+                int choice = Input(choices);
+
+                switch (choice)
+                {
+                    case 0:
+                        DungeonSelect();
+                        break;
+                    case 1:
+                        if (hpPotionNum > 0)
+                        {
+                            foreach (Item item in ItemList)
+                            {
+                                if (item is Potion)
+                                {
+                                    Potion potion = (Potion)item;
+                                    if (potion.potionType == "Hp")
+                                    {
+                                        player.HP += potion.Heal;
+                                        Console.WriteLine("체력이 회복 되었습니다!");
+                                        ItemList.Remove(item);
+                                        break;
+                                    }
+                                }
+
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("체력 포션이 없습니다!");
+                        }
+                        Thread.Sleep(1000);
+                        Console.Clear();
+                        break;
+                    case 2:
+                        if (manaPotionNum > 0)
+                        {
+                            foreach (Item item in ItemList)
+                            {
+                                if (item is Potion)
+                                {
+                                    Potion potion = (Potion)item;
+                                    if (potion.potionType == "Mana")
+                                    {
+                                        player.MP += potion.Heal;
+                                        Console.WriteLine("마나가 회복 되었습니다!");
+                                        ItemList.Remove(item);
+                                        break;
+                                    }
+                                }
+
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("마나 포션이 없습니다!");
+                        }
+                        Thread.Sleep(1000);
+                        Console.Clear();
+                        break;
+
+                }
+            }
+
+            
+
+        }
 
         static void DungeonSelect()
         {
