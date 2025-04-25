@@ -1,8 +1,9 @@
 ﻿using System.Net.Http.Headers;
 using System.Reflection.Emit;
+using System.Text.Json;
 using System.Xml.Linq;
 
-namespace TextRPG_Team_ver
+namespace Text_RPG_Chill
 {
     internal class Program
     {
@@ -110,8 +111,6 @@ namespace TextRPG_Team_ver
             public int Price { get; set; }
             public string ItemName { get; set; }
             public string ItemToolTip { get; set; }
-
-           
         }
 
         //아이템 - 무기
@@ -172,7 +171,6 @@ namespace TextRPG_Team_ver
                 Price = price;
             }
         }
-        
 
         //스킬 클래스
         class Skill
@@ -220,6 +218,13 @@ namespace TextRPG_Team_ver
                 ConditionNum = conditionNum;
                 GoldReward = goldReward;
             }
+        }
+
+        //클래스 세이브 데이터
+        class SaveData
+        {
+            public Player? Player { get; set; }
+            public List<Quest>? Quest { get; set; }
         }
 
         //직업 리스트 -- 25/04/22 도적 및 팔라딘 추가 완료
@@ -300,8 +305,39 @@ namespace TextRPG_Team_ver
         static void Main(string[] args)
         {
             player = new Player();
-            CreatPlayer();
-            MainMenu();
+
+            //선택지 배열
+            int[] choices = { 1, 2 };
+            Console.WriteLine("1. 새로하기");
+            Console.WriteLine("2. 불러오기");
+
+            //Input 메서드에서 입력이 제대로 됐는지 확인
+            int choice = Input(choices);
+
+            switch (choice)
+            {
+                case 1:
+                    CreatPlayer();
+                    MainMenu();
+                    break;
+                case 2:
+                    while (true)
+                    {
+                        bool success = LoadGame(); //로드
+
+                        if (success)
+                        {
+                            MainMenu();
+                            break;
+                        }
+                        else
+                        {
+                            Console.WriteLine("불러오기에 실패했습니다"); //실패시 다시시작
+                            Main(args);
+                        }
+                    }
+                    break;
+            }
         }
 
         //캐릭터 생성 메서드
@@ -350,7 +386,7 @@ namespace TextRPG_Team_ver
             {
                 QuestClearAlarm();
 
-                int[] choices = { 0, 1, 2, 3, 4 };
+                int[] choices = { 0, 1, 2, 3, 4, 5 };
 
                 Console.WriteLine("메인메뉴");
                 Console.WriteLine("이제 전투를 시작할 수 있습니다.");
@@ -359,6 +395,7 @@ namespace TextRPG_Team_ver
                 Console.WriteLine("2. 인벤토리");
                 Console.WriteLine("3. 던전입장");
                 Console.WriteLine("4. 퀘스트 게시판");
+                Console.WriteLine("5. 저장하기");
 
                 //색상 변경
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -379,7 +416,7 @@ namespace TextRPG_Team_ver
                         break;
                     case 3:
                         // 플레이어 체력 또는 마나가 최대 보다 적을 시 회복화면으로 이동
-                        if(player.HP < player.MaxHP || player.MP < player.MaxMP)
+                        if (player.HP < player.MaxHP || player.MP < player.MaxMP)
                         {
                             HealScreen();
                         }
@@ -387,6 +424,9 @@ namespace TextRPG_Team_ver
                         break;
                     case 4:
                         QuestsScreen();
+                        break;
+                    case 5:
+                        SaveGame();
                         break;
                 }
             }
@@ -665,7 +705,7 @@ namespace TextRPG_Team_ver
                 }
             }
 
-            
+
 
         }
 
@@ -1215,6 +1255,61 @@ namespace TextRPG_Team_ver
             }
 
         }
+
+        static void SaveGame()
+        {
+            //필요 데이터를 선택
+            var saveData = new SaveData
+            {
+                Player = player,
+                Quest = questsList
+            };
+
+            //json형식으로 저장
+            string json = JsonSerializer.Serialize(saveData, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText("save.json", json);
+
+            Console.WriteLine("게임이 저장되었습니다.");
+            Console.WriteLine();
+        }
+
+        //로드 시스템
+        static bool LoadGame()
+        {
+            if (!File.Exists("save.json"))
+            {
+                return false;
+            }
+
+            string json = File.ReadAllText("save.json");
+            SaveData? saveData = JsonSerializer.Deserialize<SaveData>(json);
+
+            if (saveData != null && saveData.Player != null)
+            {
+                player = saveData.Player;
+
+                if (saveData.Quest != null)
+                {
+                    for (int i = 0; i < questsList.Count && i < saveData.Quest.Count; i++)
+                    {
+                        questsList[i].isAccept = saveData.Quest[i].isAccept;
+                        questsList[i].isClear = saveData.Quest[i].isClear;
+                        questsList[i].isGetReward = saveData.Quest[i].isGetReward;
+                        questsList[i].CompleteNum = saveData.Quest[i].CompleteNum;
+                    }
+                }
+
+
+                Console.WriteLine("게임을 불러왔습니다.");
+                Console.WriteLine();
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
 
         //인풋 확인 시스템
         static int Input(int[] choices)
