@@ -580,10 +580,10 @@ namespace TextRPG_Team_ver
                 int manaPotionNum = 0;
                 foreach (Item item in ItemList)
                 {
-                    if (item is Potion)
+                    if (item is Potion) // 아이템의 클래스가 Potion일 경우
                     {
-                        Potion potion = (Potion)item;
-
+                        Potion potion = (Potion)item;  // item을 Potion으로 다운캐스팅 => .potionType을 사용하기 위해
+                        // 포션 타입을 확인하여 포션 개수를 알아냄
                         if (potion.potionType == "Hp")
                         {
                             hpPotionNum++;
@@ -619,9 +619,9 @@ namespace TextRPG_Team_ver
                                     Potion potion = (Potion)item;
                                     if (potion.potionType == "Hp")
                                     {
-                                        player.HP += potion.Heal;
+                                        player.HP += potion.Heal; // 포션의 회복량을 player의 현재 hp에 더함
                                         Console.WriteLine("체력이 회복 되었습니다!");
-                                        ItemList.Remove(item);
+                                        ItemList.Remove(item);// 포션을 사용했으니 인벤토링에서 삭제
                                         break;
                                     }
                                 }
@@ -645,9 +645,9 @@ namespace TextRPG_Team_ver
                                     Potion potion = (Potion)item;
                                     if (potion.potionType == "Mana")
                                     {
-                                        player.MP += potion.Heal;
+                                        player.MP += potion.Heal; // 포션의 회복량을 player의 현재 mp에 더함
                                         Console.WriteLine("마나가 회복 되었습니다!");
-                                        ItemList.Remove(item);
+                                        ItemList.Remove(item);// 포션을 사용했으니 인벤토링에서 삭제
                                         break;
                                     }
                                 }
@@ -663,10 +663,7 @@ namespace TextRPG_Team_ver
                         break;
 
                 }
-            }
-
-            
-
+            }           
         }
 
         static void DungeonSelect()
@@ -1138,19 +1135,19 @@ namespace TextRPG_Team_ver
 
             //퀘스트 미진행, 진행, 완료 및 보상 획득 여부에 따른 선텍지 변경 및 선택 번호를 리스트의 삽입           
 
-            if (quest.isClear && quest.isGetReward == false)
+            if (quest.isClear && quest.isGetReward == false) // 클리어 했지만 보상을 받지 않았을 경우
             {
                 Console.WriteLine("1. 보상받기\n0. 돌아가기");
                 choicesList.Add(0);
                 choicesList.Add(1);
             }
-            else if (quest.isAccept || quest.isClear)
+            else if (quest.isAccept || quest.isClear) //  진행중 또는 완료 및 보상을 수령했을 경우
             {
                 Console.WriteLine("0. 돌아가기");
                 choicesList.Add(0);
 
             }
-            else
+            else // 수락하지 않았을 경우
             {
                 Console.WriteLine("1. 수락\n2. 거절");
                 choicesList.Add(1);
@@ -1167,14 +1164,14 @@ namespace TextRPG_Team_ver
                 case 0:
                     return;
                 case 1:
-                    if (quest.isClear && quest.isGetReward == false)
+                    if (quest.isClear && quest.isGetReward == false) //퀘스 클리어했지만 보상을 받지 않았을 경우
                     {
-                        quest.isGetReward = true;
+                        quest.isGetReward = true; 
                         Console.WriteLine("보상을 획득하였습니다!");
                         player.Gold += quest.GoldReward;
                         ItemList.Add(rewardItem);
                     }
-                    else
+                    else 
                     {
                         quest.isAccept = true;
                         Console.WriteLine("퀘스트를 수락하였습니다.");
@@ -1208,7 +1205,7 @@ namespace TextRPG_Team_ver
                 }
                 questnum++;
             }
-            if (wrote)
+            if (wrote) // 콘솔이 출력 되어야 1초동안 콘솔 문자를 보여줌
             {
                 Thread.Sleep(1000);
                 Console.Clear();
