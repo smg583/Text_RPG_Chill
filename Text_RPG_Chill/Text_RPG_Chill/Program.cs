@@ -39,6 +39,8 @@ namespace Text_RPG_Chill
                 CheckLevelUp(); // setter 호출 없이 직접 처리
             }
 
+            //요구사항 요구경혐치 10 - 35 - 65 - 100 - ...
+            //에 따라 요구경험치 상승폭을 조절했습니다
             public void CheckLevelUp()
             {
                 while (playerEXP >= RequireEXP)
@@ -49,7 +51,7 @@ namespace Text_RPG_Chill
                     Dfn += 0.5f;
                     HP = MaxHP;
                     MP = MaxMP;
-                    RequireEXP = (int)(RequireEXP * 1.2f);
+                    RequireEXP = (5 * Level * Level + 35 * Level - 20) / 2;
 
                     Console.WriteLine($"{Name}이(가) 레벨업 했습니다! 현재 레벨: {Level}");
                 }
@@ -72,6 +74,7 @@ namespace Text_RPG_Chill
                 GiveExp = giveExp;
             }
 
+            //전투에 사용할 몬스터 클론
             public Monster Clone()
             {
                 return new Monster(this.Name, this.Level, this.Att, this.HP, this.GiveExp);
@@ -223,12 +226,13 @@ namespace Text_RPG_Chill
         };
 
         //스테이지 별 몬스터 리스트
+        //요구사항 : 몬스터 레벨은 = 경험치에 따라 경험치량 수정
         static Dictionary<int, Monster> monsters = new Dictionary<int, Monster>
         {
-            { 0, new Monster("미니언", 2, 5, 15, 10) },
-            { 1, new Monster("대포미니언", 5, 8, 25, 25) },
-            { 2, new Monster("공허충", 3, 9, 10, 15) },
-            { 3, new Monster("공성미니언", 7, 10, 25, 35) }
+            { 0, new Monster("미니언", 2, 5, 15, 2) },
+            { 1, new Monster("대포미니언", 5, 8, 25, 5) },
+            { 2, new Monster("공허충", 3, 9, 10, 3) },
+            { 3, new Monster("공성미니언", 7, 10, 25, 7) }
         };
 
         //스테이지 리스트
@@ -236,6 +240,12 @@ namespace Text_RPG_Chill
         {
             new List<int> { 0, 1, 2 },
             new List<int> { 0, 1, 3 }
+        };
+
+        static Dictionary<int, (int Gold, Item? RewardItem)> stageReward = new Dictionary<int, (int, Item?)>
+        {
+            {0, (100, null) },
+            {1, (300, ItemList?[0]) },
         };
 
         static List<Item> ItemList = new List<Item>
@@ -324,7 +334,7 @@ namespace Text_RPG_Chill
             player.Gold = choiceJob.StartGold;
             player.Job = choiceJob.Name; // 버그픽스 : player.Job = choiceJob으로 실행하면 상태창에서 직업이 아닌 Pogram.Job이 출력 되어 player 클래스의 Job을 string으로 변환하여 Job.Name 할당
             player.PlayerEXP = 0;
-            player.RequireEXP = 50;
+            player.RequireEXP = 10;
         }
 
         //메인메뉴 메서드 -- 인벤토리 / 퀘스트 선택사항 추가
@@ -553,6 +563,9 @@ namespace Text_RPG_Chill
         {
             while (true)
             {
+                //던전 생성 - 1부터 던전의 수만큼 정렬 후 0을 추가
+                //0은 메인메뉴로 돌아가기
+                //1 - ...는 던전입장
                 int[] choices = Enumerable.Range(1, stage.Count).Append(0).ToArray();
                 int i;
                 Console.WriteLine("[던전]");
@@ -570,6 +583,7 @@ namespace Text_RPG_Chill
                     case 0:
                         return;
                     default:
+                        //선택된 스테이지의 몬스터를 클론화 하는 로직
                         combatStage = stage.Select(list => list.Select(id => monsters[id].Clone()).ToList()).ToList();
                         Encounter(choice - 1);
                         break;
@@ -586,6 +600,7 @@ namespace Text_RPG_Chill
 
             while (true)
             {
+                //초기 사망 및 클리어 판정 확인
                 if (!combatStage[stageNum].Any(mon => !mon.IsDead) || player.HP <= 0)
                 {
                     BattleResult(stageNum);
@@ -617,6 +632,9 @@ namespace Text_RPG_Chill
                         Console.WriteLine("도망쳤습니다.");
                         return;
                     case 1:
+                        //셀렉트 몬스터에선 매개함수로 스테이지 정보와 사용할 스킬 정보를 요구
+                        //1번 선택지는 기본공격으로 스킬 정보가 없음
+                        //99로 대체하여 스킬 정보 대체
                         SelectMonster(stageNum, 99);
                         break;
                     case 2:
@@ -626,11 +644,13 @@ namespace Text_RPG_Chill
             }
         }
 
+        //스킬 선택 메서드
         static void SkillMenu(int stageNum)
         {
             List<int> choicesList = new List<int>();
             int index = 1;
 
+            //플레이어의 mp가 mpcost보다 많으면 선택지로 추가
             foreach (Skill skill in SkillList)
             {
                 if (player.MP >= skill.MPCost)
@@ -642,7 +662,6 @@ namespace Text_RPG_Chill
 
             // 스킬의 번호만 choicesList에  추가되어 0을 누르면 뒤로가기가 안되어 0을 직접 추가 하였습니다.
             choicesList.Add(0);
-
             int[] choices = choicesList.ToArray();
 
             Console.WriteLine($"Battle!!");
@@ -667,11 +686,15 @@ namespace Text_RPG_Chill
             Console.WriteLine("0. 취소");
 
             int choice = Input(choices);
-            if (choice == 0)
+
+            switch (choice)
             {
-                return;
+                case 0:
+                    return;
+                default:
+                    SelectMonster(stageNum, choice - 1);
+                    break;
             }
-            SelectMonster(stageNum, choice - 1);
         }
 
         //전투 메서드
@@ -683,6 +706,7 @@ namespace Text_RPG_Chill
                 List<int> choicesList = new List<int>();
                 int index = 1;
 
+                //죽은 몬스터만을 선택지로 추가
                 foreach (Unit monster in combatStage[stageNum])
                 {
                     if (!monster.IsDead)
@@ -692,8 +716,10 @@ namespace Text_RPG_Chill
                     index++;
                 }
 
+                //랜덤한 타겟을 가지는 스킬을 사용했을 경우
                 if (skillInfo != 99 && SkillList[skillInfo].IsRandomTarget)
                 {
+                    //적을 타겟수만큼 랜덤으로 고르는 코드
                     List<int> randomTargetList = choicesList
                         .OrderBy(x => random.Next())
                         .Take(SkillList[skillInfo].HitChance)
@@ -711,7 +737,7 @@ namespace Text_RPG_Chill
                 int y = 1;
                 foreach (Unit monster in combatStage[stageNum])
                 {
-                    Console.WriteLine($"[{y}] LV. {monster.Level} {monster.Name} HP {(monster.IsDead ? "Dead" : monster.HP)}");
+                    Console.WriteLine($"[{(monster.IsDead ? "-" : y)}] LV. {monster.Level} {monster.Name} HP {(monster.IsDead ? "Dead" : monster.HP)}");
                     y++;
                 }
                 Console.WriteLine();
@@ -742,28 +768,33 @@ namespace Text_RPG_Chill
             }
         }
 
+        //전투 메서드
         static void Battle(int stageNum, List<int> choiceMonster, int skillInfo)
         {
             int hitCount = 1;
+
+            //mp소모
             if (skillInfo != 99)
             {
                 player.MP -= SkillList[skillInfo].MPCost;
-
                 hitCount = SkillList[skillInfo].HitChance;
-
             }
 
+            //히트카운트(랜덤한 다수의 적을 때릴 때 다수의 수)보다 적이 적을 때
+            //히트카운트 조절
             if (choiceMonster.Count < hitCount)
             {
                 hitCount = choiceMonster.Count;
             }
 
+            //히트카운트만큼 플레이어가 몬스터에게 데미지
             for (int i = 0; i < hitCount; i++)
             {
                 int targetIndex = choiceMonster[i];
                 Damage(player, combatStage[stageNum][targetIndex], skillInfo);
             }
 
+            //살아남은 몬스터가 플레이어에게 데미지
             foreach (Unit monster in combatStage[stageNum])
             {
                 if (!monster.IsDead)
@@ -771,6 +802,8 @@ namespace Text_RPG_Chill
                     Damage(monster, player, 99);
                 }
             }
+
+            //mp회복
             if (player.MP < player.MaxMP)
             {
                 player.MP += 10;
@@ -783,12 +816,17 @@ namespace Text_RPG_Chill
 
         static void Damage(Unit attacker, Unit target, int skillInfo)
         {
+            //데미지 조절용 필드
             int[] choices = { 0 };
             //데미지 오차 10%
             int damageRate = (int)Math.Round(attacker.Att * 0.1f);
             int damage = random.Next((int)attacker.Att - damageRate, (int)attacker.Att + damageRate);
             int prevHP = target.HP;
             float skillRate;
+
+            //스킬정보 99 = 기본공격
+            //기본공격 시 데미지는 1배
+            //스킬 시 데미지 각 스킬에 따라 변동
             if (skillInfo == 99)
             {
                 skillRate = 1f;
@@ -799,12 +837,16 @@ namespace Text_RPG_Chill
             }
             int totalDamage = (int)Math.Round(damage * skillRate);
 
+            //치명타, 회피용 랜덤 함수
             int damageChance = random.Next(0, 101);
 
             Console.WriteLine("Battle!!");
             Console.WriteLine();
             Console.WriteLine($"{attacker.Name} 의 공격!");
 
+            //15%로 치명타
+            //10%로 회피
+            //나머지 일반 타격
             if (damageChance < 15)
             {
                 totalDamage = totalDamage + (int)Math.Round(totalDamage * 1.6f);
@@ -827,6 +869,7 @@ namespace Text_RPG_Chill
             {
                 questsList[0].CompleteNum++;
             }
+
             Console.WriteLine();
             Console.WriteLine($"Lv.{target.Level} {target.Name}");
             Console.WriteLine($"HP {prevHP} -> {(target.IsDead ? "Dead" : target.HP)}");
@@ -835,26 +878,40 @@ namespace Text_RPG_Chill
             int choice = Input(choices);
         }
 
+        //전투 결과 창 인카운터에서 체크
         static void BattleResult(int stageNum)
         {
             int[] choices = { 0 };
             Console.WriteLine("Battle!! - Result");
             Console.WriteLine();
+
+            //승리 시
             if (!combatStage[stageNum].Any(mon => !mon.IsDead))
             {
+                //클리어시 랜덤 확률로 아이템 획득
+                //미구현
+                int rewardItem = random.Next(101);
+                //전투한 몬스터의 경험치를 합쳐 획득
                 int totalExp = combatStage[stageNum].Sum(mon => ((Monster)mon).GiveExp);
                 player.AddEXP(totalExp);
+                player.Gold += stageReward[stageNum].Gold;
+                //if (rewardItem > 95)
+                //{
+                //    getItem(stageReward[stageNum].RewardItem);
+                //}
 
                 Console.WriteLine("Victory");
                 Console.WriteLine();
                 Console.WriteLine($"던전에서 몬스터 {stage[stageNum].Count}마리를 잡았습니다.");
                 Console.WriteLine($"획득 경험치 : {totalExp}");
+                Console.WriteLine($"획득 골드 : {stageReward[stageNum].Gold}");
                 Console.WriteLine();
                 Console.WriteLine($"Lv.{player.Level} {player.Name}");
                 Console.WriteLine($"HP {player.MaxHP} -> {player.HP}");
                 Console.WriteLine();
                 Console.WriteLine("0. 다음");
             }
+            //패배 시
             if (player.HP <= 0)
             {
                 Console.WriteLine("You Lose");
