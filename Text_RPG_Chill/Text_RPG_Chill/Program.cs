@@ -608,7 +608,7 @@ namespace TextRPG_Team_ver
                 {
                     case 0:
                         DungeonSelect();
-                        break;
+                        return; // break가 아닌 return으로 메서드 종료
                     case 1:
                         if (hpPotionNum > 0)
                         {
